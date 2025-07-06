@@ -1,154 +1,138 @@
+using System.Collections; // Обязательно для использования корутин
 using UnityEngine;
 
+[RequireComponent(typeof(EnemyVision))]
 public class EnemyAI : MonoBehaviour
 {
-    // === СОСТОЯНИЯ AI ===
-    private enum State
-    {
-        Patrolling,
-        Chasing,
-        Attacking
-    }
-
+    public enum State { Patrolling, Chasing }
+    
     [Header("AI Settings")]
-    [SerializeField] private float detectionRange = 5f; // Дистанция обнаружения игрока
-    [SerializeField] private float attackRange = 1f;    // Дистанция для атаки
-    [SerializeField] private float chaseSpeedMultiplier = 1.5f; // Насколько быстрее враг бежит за игроком
+    [SerializeField] private State currentState = State.Patrolling;
+    [Tooltip("Как долго враг будет искать игрока после потери из виду (в секундах).")]
+    [SerializeField] private float chaseLostTime = 2f;
 
-    [Header("References")]
-    [SerializeField] private LayerMask playerLayer; // Слой, на котором находится игрок
+    private IMovable movement;
+    private EnemyVision vision;
 
-    // Ссылки на другие компоненты врага
-    private EnemyPatrol patrol;
-    // private EnemyAttack attack; // Раскомментируем, когда создадим скрипт атаки
-
-    private State currentState;
-    private Transform playerTransform;
-
-    private Rigidbody2D rb;
+    private Transform currentTarget;
+    private bool isTargetVisible = false;
+    private Coroutine loseTargetCoroutine; // Ссылка на нашу корутину-таймер
 
     private void Awake()
     {
-        rb = GetComponent<Rigidbody2D>();
-        patrol = GetComponent<EnemyPatrol>();
-        // attack = GetComponent<EnemyAttack>();
+        movement = GetComponent<IMovable>();
+        vision = GetComponent<EnemyVision>();
 
-        // Находим игрока один раз при старте
-        playerTransform = GameObject.FindGameObjectWithTag("Player").transform; // ВАЖНО: У игрока должен быть тег "Player"
-    }
+        if (movement == null) { /* ... проверка ... */ }
 
-    private void Start()
-    {
-        // Начальное состояние - патрулирование
-        currentState = State.Patrolling;
-        patrol.enabled = true;
+        if (vision != null)
+        {
+            vision.OnTargetSpotted.AddListener(HandleTargetSpotted);
+            vision.OnTargetLost.AddListener(HandleTargetLost);
+        }
     }
 
     private void Update()
     {
-        // В зависимости от текущего состояния, выполняем разную логику
         switch (currentState)
         {
             case State.Patrolling:
-                UpdatePatrollingState();
+                // Логика патрулирования (пока пустая, т.к. EnemyMovement делает все сам)
                 break;
             case State.Chasing:
                 UpdateChasingState();
                 break;
-            case State.Attacking:
-                UpdateAttackingState();
-                break;
-        }
-    }
-
-    // --- ЛОГИКА СОСТОЯНИЙ ---
-
-    private void UpdatePatrollingState()
-    {
-        // Если игрок в зоне видимости, переключаемся на преследование
-        if (IsPlayerInDetectionRange())
-        {
-            SwitchState(State.Chasing);
         }
     }
 
     private void UpdateChasingState()
     {
-        // Если игрок вышел из зоны видимости, возвращаемся к патрулированию
-        if (!IsPlayerInDetectionRange())
+        if (currentTarget == null)
         {
+            // Если цели по какой-то причине нет, переходим в патруль
             SwitchState(State.Patrolling);
             return;
         }
 
-        // Если игрок в зоне атаки, переключаемся на атаку
-        if (IsPlayerInAttackRange())
-        {
-            SwitchState(State.Attacking);
-            return;
-        }
-
-        // Логика преследования: двигаемся в сторону игрока
-        // (Реализуем это чуть позже, изменив EnemyPatrol)
+        // Двигаемся к цели
+        movement.MoveTowards(currentTarget.position);
     }
-
-    private void UpdateAttackingState()
-    {
-        // Если игрок вышел из зоны атаки, но все еще виден, возвращаемся к преследованию
-        if (!IsPlayerInAttackRange())
-        {
-            SwitchState(State.Chasing);
-            return;
-        }
-
-        // Выполняем атаку
-        // attack.PerformAttack();
-    }
-
-    // --- ПЕРЕКЛЮЧЕНИЕ СОСТОЯНИЙ ---
 
     private void SwitchState(State newState)
     {
+        if (currentState == newState) return;
         currentState = newState;
+        Debug.Log("Переключил состояние на: " + newState);
 
         switch (currentState)
         {
             case State.Patrolling:
-                patrol.enabled = true;
-                patrol.SetChasing(false); // Говорим патрулю вернуться к обычному режиму
+                movement.StartPatrolling();
                 break;
             case State.Chasing:
-                patrol.enabled = true;
-                patrol.SetChasing(true); // Говорим патрулю преследовать игрока
-                break;
-            case State.Attacking:
-                patrol.enabled = false; // Останавливаемся для атаки
-                rb.linearVelocity = Vector2.zero; // Обнуляем скорость
+                movement.StopPatrolling();
                 break;
         }
     }
 
-    // --- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ---
+    // --- ОБРАБОТЧИКИ СОБЫТИЙ С НОВОЙ ЛОГИКОЙ ---
 
-    private bool IsPlayerInDetectionRange()
+    private void HandleTargetSpotted(Transform spottedTarget)
     {
-        if (playerTransform == null) return false;
-        return Vector2.Distance(transform.position, playerTransform.position) < detectionRange;
+        // Если мы уже преследуем цель, просто обновляем ее позицию
+        currentTarget = spottedTarget;
+
+        // Если мы были в процессе потери цели, отменяем этот процесс
+        if (loseTargetCoroutine != null)
+        {
+            StopCoroutine(loseTargetCoroutine);
+            loseTargetCoroutine = null;
+            Debug.Log("Цель снова замечена, отменяю потерю.");
+        }
+
+        // Если мы не преследовали цель, начинаем преследование
+        if (!isTargetVisible)
+        {
+            isTargetVisible = true;
+            Debug.Log("ЦЕЛЬ ЗАМЕЧЕНА! Имя цели: " + spottedTarget.name);
+            SwitchState(State.Chasing);
+        }
     }
 
-    private bool IsPlayerInAttackRange()
+    private void HandleTargetLost()
     {
-        if (playerTransform == null) return false;
-        return Vector2.Distance(transform.position, playerTransform.position) < attackRange;
+        // Запускаем таймер на потерю цели, только если мы ее действительно видели
+        if (isTargetVisible)
+        {
+            Debug.Log("Цель пропала из виду, запускаю таймер на " + chaseLostTime + " сек.");
+            loseTargetCoroutine = StartCoroutine(LoseTargetCoroutine());
+        }
     }
 
-    // Визуализация для настройки
-    private void OnDrawGizmosSelected()
-    {
-        Gizmos.color = Color.yellow;
-        Gizmos.DrawWireSphere(transform.position, detectionRange);
+    // --- НАША НОВАЯ КОРУТИНА-ТАЙМЕР ---
 
-        Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(transform.position, attackRange);
+    private IEnumerator LoseTargetCoroutine()
+    {
+        // Ждем указанное количество секунд
+        yield return new WaitForSeconds(chaseLostTime);
+
+        // Если мы дождались, и цель так и не появилась,
+        // то окончательно ее теряем.
+        isTargetVisible = false;
+        currentTarget = null;
+        Debug.Log("Время вышло, цель окончательно потеряна.");
+        SwitchState(State.Patrolling);
+        
+        // Сбрасываем ссылку на корутину
+        loseTargetCoroutine = null;
+    }
+
+    private void OnDestroy()
+    {
+        if (vision != null)
+        {
+            vision.OnTargetSpotted.RemoveListener(HandleTargetSpotted);
+            vision.OnTargetLost.RemoveListener(HandleTargetLost);
+        }
     }
 }
