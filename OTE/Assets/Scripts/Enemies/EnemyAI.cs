@@ -1,68 +1,87 @@
-using System.Collections; // Обязательно для использования корутин
+using System.Collections;
 using UnityEngine;
 
-[RequireComponent(typeof(EnemyVision))]
+[RequireComponent(typeof(EnemyVision), typeof(EnemyAttack))]
 public class EnemyAI : MonoBehaviour
 {
-    public enum State { Patrolling, Chasing }
+    // Определяем возможные состояния врага
+    public enum State { Patrolling, Chasing, Attacking }
     
     [Header("AI Settings")]
     [SerializeField] private State currentState = State.Patrolling;
-    [Tooltip("Как долго враг будет искать игрока после потери из виду (в секундах).")]
-    [SerializeField] private float chaseLostTime = 2f;
+    [SerializeField] private float chaseLostTime = 2f; // Задержка перед потерей цели
+    [SerializeField] private float attackRange = 1f;   // Дистанция для начала атаки
 
+    // Ссылки на модули
     private IMovable movement;
     private EnemyVision vision;
+    private EnemyAttack attack;
 
+    // Переменные состояния
     private Transform currentTarget;
-    private bool isTargetVisible = false;
-    private Coroutine loseTargetCoroutine; // Ссылка на нашу корутину-таймер
+    private Coroutine loseTargetCoroutine;
 
     private void Awake()
     {
+        // Получаем ссылки на компоненты
         movement = GetComponent<IMovable>();
         vision = GetComponent<EnemyVision>();
+        attack = GetComponent<EnemyAttack>();
 
-        if (movement == null) { /* ... проверка ... */ }
-
-        if (vision != null)
+        if (movement == null)
         {
-            vision.OnTargetSpotted.AddListener(HandleTargetSpotted);
-            vision.OnTargetLost.AddListener(HandleTargetLost);
+            Debug.LogError("На враге отсутствует компонент, реализующий IMovable.", this);
+            this.enabled = false;
         }
+
+        // Подписываемся на события от других модулей
+        vision.OnTargetSpotted.AddListener(HandleTargetSpotted);
+        vision.OnTargetLost.AddListener(HandleTargetLost);
+        attack.OnAttackFinished.AddListener(HandleAttackFinished);
     }
 
     private void Update()
     {
+        // Главная машина состояний
         switch (currentState)
         {
             case State.Patrolling:
-                // Логика патрулирования (пока пустая, т.к. EnemyMovement делает все сам)
+                // Патрулирование управляется модулем EnemyMovement
                 break;
             case State.Chasing:
                 UpdateChasingState();
                 break;
+            case State.Attacking:
+                // В состоянии атаки просто ждем ее завершения
+                break;
         }
     }
 
+    // Логика поведения в состоянии преследования
     private void UpdateChasingState()
     {
         if (currentTarget == null)
         {
-            // Если цели по какой-то причине нет, переходим в патруль
             SwitchState(State.Patrolling);
             return;
         }
 
-        // Двигаемся к цели
-        movement.MoveTowards(currentTarget.position);
+        float distanceToTarget = Vector2.Distance(transform.position, currentTarget.position);
+        if (distanceToTarget <= attackRange)
+        {
+            SwitchState(State.Attacking); // Если цель близко, атакуем
+        }
+        else
+        {
+            movement.MoveTowards(currentTarget.position); // Иначе продолжаем преследование
+        }
     }
 
+    // Центральный метод для смены состояний
     private void SwitchState(State newState)
     {
         if (currentState == newState) return;
         currentState = newState;
-        Debug.Log("Переключил состояние на: " + newState);
 
         switch (currentState)
         {
@@ -72,67 +91,72 @@ public class EnemyAI : MonoBehaviour
             case State.Chasing:
                 movement.StopPatrolling();
                 break;
+            case State.Attacking:
+                movement.StopPatrolling(); // Останавливаемся перед атакой
+                attack.PerformAttack();   // Отдаем команду на атаку
+                break;
         }
     }
 
-    // --- ОБРАБОТЧИКИ СОБЫТИЙ С НОВОЙ ЛОГИКОЙ ---
-
+    // Вызывается, когда цель замечена
     private void HandleTargetSpotted(Transform spottedTarget)
     {
-        // Если мы уже преследуем цель, просто обновляем ее позицию
         currentTarget = spottedTarget;
-
-        // Если мы были в процессе потери цели, отменяем этот процесс
         if (loseTargetCoroutine != null)
         {
             StopCoroutine(loseTargetCoroutine);
             loseTargetCoroutine = null;
-            Debug.Log("Цель снова замечена, отменяю потерю.");
         }
-
-        // Если мы не преследовали цель, начинаем преследование
-        if (!isTargetVisible)
+        
+        if (currentState != State.Attacking)
         {
-            isTargetVisible = true;
-            Debug.Log("ЦЕЛЬ ЗАМЕЧЕНА! Имя цели: " + spottedTarget.name);
             SwitchState(State.Chasing);
         }
     }
 
+    // Вызывается, когда цель пропала из виду
     private void HandleTargetLost()
     {
-        // Запускаем таймер на потерю цели, только если мы ее действительно видели
-        if (isTargetVisible)
+        if (currentState == State.Attacking) return;
+        
+        loseTargetCoroutine = StartCoroutine(LoseTargetCoroutine());
+    }
+    
+    // Вызывается, когда модуль атаки закончил свою работу
+    private void HandleAttackFinished()
+    {
+        // Решаем, что делать после атаки
+        if (currentTarget != null && vision.IsTargetVisible())
         {
-            Debug.Log("Цель пропала из виду, запускаю таймер на " + chaseLostTime + " сек.");
-            loseTargetCoroutine = StartCoroutine(LoseTargetCoroutine());
+            SwitchState(State.Chasing); // Если цель еще видна, снова преследуем
+        }
+        else
+        {
+            SwitchState(State.Patrolling); // Если цель потеряна, патрулируем
         }
     }
 
-    // --- НАША НОВАЯ КОРУТИНА-ТАЙМЕР ---
-
+    // Таймер для задержки перед окончательной потерей цели
     private IEnumerator LoseTargetCoroutine()
     {
-        // Ждем указанное количество секунд
         yield return new WaitForSeconds(chaseLostTime);
 
-        // Если мы дождались, и цель так и не появилась,
-        // то окончательно ее теряем.
-        isTargetVisible = false;
         currentTarget = null;
-        Debug.Log("Время вышло, цель окончательно потеряна.");
         SwitchState(State.Patrolling);
-        
-        // Сбрасываем ссылку на корутину
         loseTargetCoroutine = null;
     }
 
+    // Отписываемся от событий при уничтожении объекта, чтобы избежать ошибок
     private void OnDestroy()
     {
         if (vision != null)
         {
             vision.OnTargetSpotted.RemoveListener(HandleTargetSpotted);
             vision.OnTargetLost.RemoveListener(HandleTargetLost);
+        }
+        if (attack != null)
+        {
+            attack.OnAttackFinished.RemoveListener(HandleAttackFinished);
         }
     }
 }

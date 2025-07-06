@@ -54,7 +54,7 @@ public class EnemyVision : MonoBehaviour
         Collider2D[] targetsInZone = new Collider2D[1]; // Ищем только одну цель для простоты
         ContactFilter2D filter = new ContactFilter2D().NoFilter();
         filter.SetLayerMask(targetLayer);
-        
+
         int targetCount = visionTrigger.Overlap(filter, targetsInZone);
 
         if (targetCount == 0)
@@ -80,8 +80,14 @@ public class EnemyVision : MonoBehaviour
                 return false;
             }
         }
-        
+
         // Если все проверки пройдены, цель видима
         return true;
     }
+    
+    public bool IsTargetVisible()
+    {
+        // Просто возвращаем состояние из прошлого кадра
+        return wasTargetVisibleLastFrame;
+    }   
 }
