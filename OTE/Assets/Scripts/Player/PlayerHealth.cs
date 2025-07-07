@@ -2,17 +2,14 @@ using UnityEngine;
 using System.Collections;
 using UnityEditor.U2D.Aseprite;
 using NUnit.Framework.Constraints;
+using UnityEngine.SceneManagement;
 
-// --- ИСПРАВЛЕННЫЙ БЛОК ---
-// Используем несколько атрибутов, по одному на каждый компонент
 [RequireComponent(typeof(Rigidbody2D))]
 [RequireComponent(typeof(Animator))]
 [RequireComponent(typeof(PlayerController))]
 [RequireComponent(typeof(PlayerMovement))]
 public class PlayerHealth : MonoBehaviour, IDamageable
 {
-    // ... остальной код скрипта остается без изменений ...
-    
     [Header("Health Settings")]
     [SerializeField] private float maxHealth = 100f;
 
@@ -74,7 +71,7 @@ public class PlayerHealth : MonoBehaviour, IDamageable
     private IEnumerator HurtSequence()
     {
         isInvincible = true;
-        
+
         float knockbackDirection = transform.localScale.x > 0 ? -1 : 1; // Отбрасывает в сторону, противоположную взгляду
         rb.linearVelocity = Vector2.zero;
         rb.AddForce(new Vector2(hurtKnockback.x * knockbackDirection, hurtKnockback.y), ForceMode2D.Impulse);
@@ -112,11 +109,19 @@ public class PlayerHealth : MonoBehaviour, IDamageable
 
         animator.SetTrigger("death");
         StartCoroutine(FreezeAnimationOnDeath());
+        StartCoroutine(RestartLevel());
+
     }
 
     private IEnumerator FreezeAnimationOnDeath()
     {
         yield return new WaitForSeconds(1f);
         animator.speed = 0;
+    }
+    
+    private IEnumerator RestartLevel()
+    {
+        yield return new WaitForSeconds(2f);
+        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
 }
