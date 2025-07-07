@@ -26,8 +26,9 @@ public class PatrolMovement : MonoBehaviour, IMovementBehavior
     private Vector2 startPosition;
     private bool isWaiting = false;
     private float waitTimer;
-    private int direction = 1; // 1 = вправо, -1 = влево
     private bool isDynamicPatrol;
+
+    private EnemyController controller;
 
     private void Awake()
     {
@@ -35,6 +36,7 @@ public class PatrolMovement : MonoBehaviour, IMovementBehavior
         anim = GetComponent<Animator>();
         startPosition = rb.position;
         isDynamicPatrol = patrolDistance > 0;
+        controller = GetComponent<EnemyController>();
     }
 
     public void Move(Rigidbody2D rigidbody, Transform target)
@@ -51,7 +53,7 @@ public class PatrolMovement : MonoBehaviour, IMovementBehavior
             if (waitTimer <= 0)
             {
                 isWaiting = false;
-                Flip();
+                controller.Flip();
             }
             return;
         }
@@ -62,6 +64,7 @@ public class PatrolMovement : MonoBehaviour, IMovementBehavior
             waitTimer = waitTime;
             return;
         }
+        float direction = controller.IsFacingRight ? 1 : -1;
         rb.linearVelocity = new Vector2(direction * moveSpeed, rb.linearVelocity.y);
     }
 
@@ -70,8 +73,21 @@ public class PatrolMovement : MonoBehaviour, IMovementBehavior
         bool atObstacle = IsNearWall() || IsAtEdge();
         if (isDynamicPatrol)
         {
-            float distanceFromStart = Mathf.Abs(rb.position.x - startPosition.x);
-            return distanceFromStart >= patrolDistance || atObstacle;
+            bool atPatrolLimit = false;
+            float currentDirection = controller.IsFacingRight ? 1 : -1;
+
+            if (currentDirection > 0) // Если идем вправо
+            {
+                // Проверяем, не зашли ли мы за правую границу
+                atPatrolLimit = rb.position.x >= startPosition.x + patrolDistance;
+            }
+            else // Если идем влево
+            {
+                // Проверяем, не зашли ли мы за левую границу
+                atPatrolLimit = rb.position.x <= startPosition.x - patrolDistance;
+            }
+
+            return atPatrolLimit || atObstacle;
         }
         else
         {
@@ -79,38 +95,46 @@ public class PatrolMovement : MonoBehaviour, IMovementBehavior
         }
     }
 
-    // --- НОВАЯ ЛОГИКА ПРОВЕРКИ ---
-
     // Проверка на стену: пускаем короткий луч ВПЕРЕД из точки patrolCheck
     private bool IsNearWall()
     {
+        // Используем направление из контроллера
+        float direction = controller.IsFacingRight ? 1 : -1;
         return Physics2D.Raycast(patrolCheck.position, Vector2.right * direction, wallCheckDistance, groundLayer);
     }
 
     // Проверка на обрыв: пускаем луч ВНИЗ из точки patrolCheck
     private bool IsAtEdge()
     {
-        return !Physics2D.Raycast(patrolCheck.position, Vector2.down, edgeCheckDistance, groundLayer);
-    }
-
-    private void Flip()
-    {
-        direction *= -1;
-        transform.Rotate(0f, 180f, 0f);
+        float direction = controller.IsFacingRight ? 1 : -1;
+        Vector2 checkPosition = new Vector2(patrolCheck.position.x + (wallCheckDistance * direction), patrolCheck.position.y);
+        return !Physics2D.Raycast(checkPosition, Vector2.down, edgeCheckDistance, groundLayer);
     }
 
     // Визуализация лучей для удобной настройки в редакторе
     private void OnDrawGizmos()
     {
-        if (patrolCheck != null)
-        {
-            // Рисуем луч для проверки стены
-            Gizmos.color = Color.blue;
-            Gizmos.DrawLine(patrolCheck.position, (Vector2)patrolCheck.position + Vector2.right * direction * wallCheckDistance);
+        if (patrolCheck == null)
+            return;
 
-            // Рисуем луч для проверки обрыва
-            Gizmos.color = Color.green;
-            Gizmos.DrawLine(patrolCheck.position, (Vector2)patrolCheck.position + Vector2.down * edgeCheckDistance);
+        float gizmoDirection = 1;
+
+        if (Application.isPlaying && controller != null)
+        {
+            gizmoDirection = controller.IsFacingRight ? 1 : -1;
         }
+        else
+        {
+            if (transform.lossyScale.x < 0)
+            {
+                gizmoDirection = -1;
+            }
+        }
+
+        Gizmos.color = Color.blue;
+        Gizmos.DrawLine(patrolCheck.position, (Vector2)patrolCheck.position + Vector2.right * gizmoDirection * wallCheckDistance);
+
+        Gizmos.color = Color.green;
+        Gizmos.DrawLine(patrolCheck.position, (Vector2)patrolCheck.position + Vector2.down * edgeCheckDistance);
     }
 }

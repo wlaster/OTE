@@ -1,10 +1,7 @@
-using System;
-
 public class PatrolState : IState
 {
     private readonly EnemyController controller;
 
-    // Конструктор, который принимает ссылку на главный контроллер
     public PatrolState(EnemyController enemyController)
     {
         controller = enemyController;
@@ -12,24 +9,25 @@ public class PatrolState : IState
 
     public void Enter()
     {
-        // Логика при входе в состояние (например, включить анимацию патруля)
+        // При входе в состояние патруля, устанавливаем соответствующее поведение
+        controller.SetMovementBehavior(controller.PatrolMovement);
     }
 
     public void Execute()
     {
-        // Каждый кадр вызываем метод движения
-        controller.MovementBehavior?.Move(controller.RB, null); // target здесь не нужен
-        // Проверяем, не увидел ли враг игрока
-        if (controller.Vision != null && controller.Vision.IsPlayerDetected)
+        // Выполняем движение, если оно есть
+        controller.CurrentMovementBehavior?.Move(controller.RB, null);
+
+        // Проверяем, есть ли у нас модуль зрения и модуль преследования,
+        // и только тогда пытаемся перейти в состояние погони.
+        if (controller.Vision != null && controller.Vision.IsPlayerDetected && controller.ChaseMovement != null)
         {
-            // Если увидел, переключаемся в состояние преследования
-            // controller.ChangeState(controller.chaseState); // Эту логику добавим позже
+            controller.ChangeState(controller.chaseState);
         }
     }
 
     public void Exit()
     {
-        // Логика при выходе из состояния (например, остановить движение)
-        controller.RB.linearVelocity = UnityEngine.Vector2.zero;
+        // Ничего не делаем при выходе, смена поведения произойдет в Enter нового состояния
     }
 }
