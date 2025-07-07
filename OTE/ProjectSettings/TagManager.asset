@@ -8,13 +8,13 @@ TagManager:
   - Default
   - TransparentFX
   - Ignore Raycast
-  - 
+  - Target
   - Water
   - UI
-  - Ground
+  - Obstacle
   - Enemies
-  - Player
-  - PatrolPoint
+  - 
+  - 
   - 
   - 
   - 
