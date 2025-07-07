@@ -48,14 +48,11 @@ public class PlayerAttack : MonoBehaviour
     // Event в КАДР УДАРА для каждой анимации.
     public void DealDamage()
     {
-        Collider2D[] hitEnemies = Physics2D.OverlapCircleAll(attackPoint.position, attackRange, enemyLayer);
+        Collider2D[] hitEnemies = Physics2D.OverlapCircleAll(attackPoint.position, attackRange);
         foreach (Collider2D enemyCollider in hitEnemies)
         {
-            EnemyHealth enemyHealth = enemyCollider.GetComponent<EnemyHealth>();
-            if (enemyHealth != null)
-            {
-                enemyHealth.TakeDamage(attackDamage);
-            }
+            // Ищем любой объект, который может получать урон
+            enemyCollider.GetComponent<IDamageable>()?.TakeDamage(attackDamage);
         }
     }
 
