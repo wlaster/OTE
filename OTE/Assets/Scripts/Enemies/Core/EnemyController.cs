@@ -1,117 +1,167 @@
 using UnityEngine;
 
-[RequireComponent(typeof(Rigidbody2D), typeof(EnemyHealth))]
-public class EnemyController : MonoBehaviour
+// Перечисление для состояний ИИ
+public enum AIState
 {
-    [Header("State Machine")]
-    private IState currentState;
-    // Экземпляры всех возможных состояний
-    public IdleState idleState;
-    public PatrolState patrolState;
-    public ChaseState chaseState;
-    public AttackState attackState;
+    Patrolling,
+    Chasing,
+    Attacking
+}
 
-    [Header("Attack Settings (for transitions)")]
-    [Tooltip("Дистанция, на которой враг переходит в состояние атаки.")]
-    [SerializeField] private float attackRange = 1.5f;
-    // Перезарядку мы убрали отсюда, так как она теперь настраивается в самом модуле атаки
+// Перечисление для режимов патрулирования
+public enum PatrolMode
+{
+    PatrolUntilWall,
+    PatrolInArea
+}
 
+[RequireComponent(typeof(EnemyMovement))]
+public class EnemyAIController : MonoBehaviour
+{
     [Header("Core Components")]
-    public Rigidbody2D RB { get; private set; }
-    public Animator Anim { get; private set; }
-    public EnemyVision Vision { get; private set; }
+    [SerializeField] private EnemyMovement movementModule;
+    // public EnemyAttack attackModule; // Раскомментируйте, когда будет готов модуль атаки
+    [SerializeField] private Animator animator;
 
-    [Header("Behaviors (found automatically)")]
-    // Ссылки на все возможные поведения, которые могут быть у врага
-    public IMovementBehavior PatrolMovement { get; private set; }
-    public IMovementBehavior ChaseMovement { get; private set; }
-    public IAttackBehavior AttackBehavior { get; private set; } // Теперь у нас одно общее поле для атаки
+    [Header("Behavior Toggles")]
+    [SerializeField] private bool canPatrol = true;
+    [SerializeField] private bool canChase = false;
 
-    // Ссылка на ТЕКУЩЕЕ активное поведение движения
-    public IMovementBehavior CurrentMovementBehavior { get; private set; }
+    [Header("Detection Settings")]
+    [SerializeField] private float detectionRadius = 10f;
+    [SerializeField] private float loseSightRadius = 15f;
+    [SerializeField] private LayerMask playerLayer;
+    private Transform player;
+
+    [Header("Patrol Settings")]
+    [SerializeField] private PatrolMode patrolMode;
+    [SerializeField] private float patrolAreaRadius = 5f;
+    [SerializeField] private Transform groundWallCheckPoint; // НАША НОВАЯ ТОЧКА
+    [SerializeField] private float groundCheckDistance = 1f;
+    [SerializeField] private float wallCheckDistance = 0.5f;
+    [SerializeField] private LayerMask groundLayer;
+
+    // --- Состояние ИИ ---
+    private AIState currentState;
 
     private void Awake()
     {
-        // --- Получаем основные компоненты ---
-        RB = GetComponent<Rigidbody2D>();
-        Anim = GetComponentInChildren<Animator>();
-        Vision = GetComponent<EnemyVision>();
-
-        // --- Ищем все доступные поведения ---
-        // Движение
-        var movementBehaviors = GetComponents<IMovementBehavior>();
-        foreach (var behavior in movementBehaviors)
-        {
-            if (behavior is PatrolMovement) PatrolMovement = behavior;
-            if (behavior is ChaseMovement) ChaseMovement = behavior;
-            (behavior as MonoBehaviour).enabled = false; // Выключаем все на старте
-        }
-
-        // Атака (теперь ищем любой компонент, реализующий интерфейс)
-        AttackBehavior = GetComponent<IAttackBehavior>();
-        if (AttackBehavior != null)
-        {
-            // Для атак типа ContactDamage не нужно выключать компонент,
-            // но для PatternAttack или RangedAttack это может быть полезно, если они имеют свою логику в Update.
-            // Пока оставляем включенным для универсальности.
-        }
-
-        // --- Инициализируем состояния ---
-        idleState = new IdleState(this);
-        patrolState = new PatrolState(this);
-        chaseState = new ChaseState(this);
-        // Передаем в AttackState настройки из контроллера
-        attackState = new AttackState(this, attackRange);
+        if (movementModule == null) movementModule = GetComponent<EnemyMovement>();
+        if (animator == null) animator = GetComponent<Animator>();
+        player = GameObject.FindGameObjectWithTag("Player")?.transform; // Находим игрока по тегу
     }
 
     private void Start()
     {
-        // --- Устанавливаем начальное состояние ---
-        if (PatrolMovement != null)
-        {
-            ChangeState(patrolState);
-        }
-        else
-        {
-            ChangeState(idleState);
-        }
+        currentState = AIState.Patrolling;
     }
 
     private void Update()
     {
-        currentState?.Execute();
-    }
-
-    public void ChangeState(IState newState)
-    {
-        currentState?.Exit();
-        currentState = newState;
-        currentState.Enter();
-    }
-
-    public void SetMovementBehavior(IMovementBehavior newBehavior)
-    {
-        if (CurrentMovementBehavior != null)
+        // Главный цикл конечного автомата
+        switch (currentState)
         {
-            (CurrentMovementBehavior as MonoBehaviour).enabled = false;
+            case AIState.Patrolling:
+                HandlePatrollingState();
+                break;
+            case AIState.Chasing:
+                HandleChasingState();
+                break;
+            case AIState.Attacking:
+                HandleAttackingState();
+                break;
         }
-        CurrentMovementBehavior = newBehavior;
-        if (CurrentMovementBehavior != null)
+        
+        UpdateAnimations();
+    }
+
+    // --- Обработчики состояний ---
+
+    private void HandlePatrollingState()
+    {
+        // Переход в состояние преследования
+        if (canChase && IsPlayerInSight())
         {
-            (CurrentMovementBehavior as MonoBehaviour).enabled = true;
+            currentState = AIState.Chasing;
+            return;
+        }
+
+        if (canPatrol)
+        {
+            if (movementModule.ShouldFlip(patrolMode, patrolAreaRadius, groundWallCheckPoint, wallCheckDistance, groundCheckDistance, groundLayer))
+            {
+                movementModule.Flip();
+            }
+            movementModule.MoveInCurrentDirection();
+        }
+        else
+        {
+            movementModule.Stop();
         }
     }
 
-    public bool IsFacingRight { get; private set; } = true;
-    public void Flip()
+    private void HandleChasingState()
     {
-        IsFacingRight = !IsFacingRight;
-        transform.Rotate(0f, 180f, 0f);
+        // Переход обратно в патрулирование, если игрок ушел
+        if (!IsPlayerInSight(loseSightRadius))
+        {
+            currentState = AIState.Patrolling;
+            return;
+        }
+        
+        // Переход в атаку, если игрок близко
+        // if (IsPlayerInAttackRange()) { currentState = AIState.Attacking; return; }
+
+        movementModule.MoveTowards(player.position);
     }
 
-    // Публичное свойство для получения attackRange из состояний
-    public float GetAttackRange()
+    private void HandleAttackingState()
     {
-        return attackRange;
+        movementModule.Stop();
+        // attackModule.Attack(player);
+        // После атаки нужно решить, куда переходить - в преследование или патруль
+        // if (!IsPlayerInAttackRange()) { currentState = AIState.Chasing; }
+    }
+    
+    // --- Вспомогательные функции ---
+
+    private bool IsPlayerInSight(float radius = 0)
+    {
+        if (player == null) return false;
+        
+        float currentRadius = (radius == 0) ? detectionRadius : radius;
+        return Vector2.Distance(transform.position, player.position) < currentRadius;
+    }
+
+    private void UpdateAnimations()
+    {
+        // Управляем анимацией движения
+        // animator.SetBool("isMoving", currentState == AIState.Patrolling || currentState == AIState.Chasing);
+    }
+
+    // --- Визуализация в редакторе ---
+    private void OnDrawGizmosSelected()
+    {
+        // Рисуем радиус обнаружения
+        Gizmos.color = Color.yellow;
+        Gizmos.DrawWireSphere(transform.position, detectionRadius);
+
+        // Рисуем радиус потери цели
+        Gizmos.color = Color.gray;
+        Gizmos.DrawWireSphere(transform.position, loseSightRadius);
+        
+        // Рисуем лучи для проверки стен и обрывов
+        if (groundWallCheckPoint != null)
+        {
+            int direction = Application.isPlaying ? movementModule.GetDirection() : 1;
+            
+            // Луч для стены
+            Gizmos.color = Color.blue;
+            Gizmos.DrawLine(groundWallCheckPoint.position, groundWallCheckPoint.position + (Vector3.right * direction * wallCheckDistance));
+            
+            // Луч для обрыва
+            Gizmos.color = Color.green;
+            Gizmos.DrawLine(groundWallCheckPoint.position, groundWallCheckPoint.position + (Vector3.down * groundCheckDistance));
+        }
     }
 }

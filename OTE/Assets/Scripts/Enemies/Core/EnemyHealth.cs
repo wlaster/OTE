@@ -18,13 +18,10 @@ public class EnemyHealth : MonoBehaviour, IDamageable
     private SpriteRenderer spriteRenderer;
     private Color originalColor;
     private Collider2D enemyCollider;
-    private EnemyController enemyController; // Ссылка на мозг
-
     private void Awake()
     {
         spriteRenderer = GetComponentInChildren<SpriteRenderer>();
         enemyCollider = GetComponent<Collider2D>();
-        enemyController = GetComponent<EnemyController>();
 
         if (spriteRenderer != null)
         {
@@ -51,7 +48,6 @@ public class EnemyHealth : MonoBehaviour, IDamageable
     {
         isDead = true;
         enemyCollider.enabled = false;
-        if (enemyController != null) enemyController.enabled = false; // Отключаем мозг
         
         OnDeath?.Invoke();
         Destroy(gameObject, 2f); // Уничтожаем с задержкой
