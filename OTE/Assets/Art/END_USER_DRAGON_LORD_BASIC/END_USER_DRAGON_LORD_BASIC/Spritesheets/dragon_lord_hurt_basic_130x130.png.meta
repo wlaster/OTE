@@ -234,7 +234,12 @@ TextureImporter:
     secondaryTextures: []
     spriteCustomMetadata:
       entries: []
-    nameFileIdTable: {}
+    nameFileIdTable:
+      dragon_lord_hurt_basic_130x130_0: -5737431143582861737
+      dragon_lord_hurt_basic_130x130_1: 4614877868033433535
+      dragon_lord_hurt_basic_130x130_2: -2600061840408875342
+      dragon_lord_hurt_basic_130x130_3: 8752557636746492179
+      dragon_lord_hurt_basic_130x130_4: -7629554020039211444
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

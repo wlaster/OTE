@@ -134,7 +134,8 @@ TextureImporter:
     secondaryTextures: []
     spriteCustomMetadata:
       entries: []
-    nameFileIdTable: {}
+    nameFileIdTable:
+      dragon_lord_portrait_512x512_0: -461444092836151284
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

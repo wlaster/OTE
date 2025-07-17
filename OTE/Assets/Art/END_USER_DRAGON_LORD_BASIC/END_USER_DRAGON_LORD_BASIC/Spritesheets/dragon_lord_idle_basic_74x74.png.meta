@@ -209,7 +209,11 @@ TextureImporter:
     secondaryTextures: []
     spriteCustomMetadata:
       entries: []
-    nameFileIdTable: {}
+    nameFileIdTable:
+      dragon_lord_idle_basic_74x74_0: -926306591406858770
+      dragon_lord_idle_basic_74x74_1: 6230221179431750679
+      dragon_lord_idle_basic_74x74_2: 7888438550139971532
+      dragon_lord_idle_basic_74x74_3: -209047563608733617
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

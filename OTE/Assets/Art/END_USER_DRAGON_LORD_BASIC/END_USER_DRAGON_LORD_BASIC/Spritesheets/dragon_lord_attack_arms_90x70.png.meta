@@ -584,7 +584,26 @@ TextureImporter:
     secondaryTextures: []
     spriteCustomMetadata:
       entries: []
-    nameFileIdTable: {}
+    nameFileIdTable:
+      dragon_lord_attack_arms_90x70_0: -5610865222040217027
+      dragon_lord_attack_arms_90x70_1: -633850032892303410
+      dragon_lord_attack_arms_90x70_10: 7426916572108249657
+      dragon_lord_attack_arms_90x70_11: -8878850676315394187
+      dragon_lord_attack_arms_90x70_12: 2586406813146485783
+      dragon_lord_attack_arms_90x70_13: 1827919550952526888
+      dragon_lord_attack_arms_90x70_14: -330104923049658097
+      dragon_lord_attack_arms_90x70_15: -628499129434554577
+      dragon_lord_attack_arms_90x70_16: -5034925478767109923
+      dragon_lord_attack_arms_90x70_17: -7654916505346846153
+      dragon_lord_attack_arms_90x70_18: 7253985541412943540
+      dragon_lord_attack_arms_90x70_2: 6703443026468060472
+      dragon_lord_attack_arms_90x70_3: -1285055701826101795
+      dragon_lord_attack_arms_90x70_4: 3976704513776759125
+      dragon_lord_attack_arms_90x70_5: 6887677118452717839
+      dragon_lord_attack_arms_90x70_6: -4542701111834528341
+      dragon_lord_attack_arms_90x70_7: -3667668793570704854
+      dragon_lord_attack_arms_90x70_8: 494500605987431209
+      dragon_lord_attack_arms_90x70_9: -8176010017842723356
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

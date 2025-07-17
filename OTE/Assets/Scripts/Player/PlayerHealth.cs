@@ -1,7 +1,5 @@
 using UnityEngine;
 using System.Collections;
-using UnityEditor.U2D.Aseprite;
-using NUnit.Framework.Constraints;
 using UnityEngine.SceneManagement;
 
 [RequireComponent(typeof(Rigidbody2D))]
@@ -24,6 +22,11 @@ public class PlayerHealth : MonoBehaviour, IDamageable
     [SerializeField] private Vector2 deathColliderSize = new Vector2(1f, 0.5f);
     [SerializeField] private LayerMask layersToExcludeOnDeath;
 
+    [Header("Knockback Settings")]
+    [Tooltip("Угол отскока в градусах. 45 = вверх-вбок, 90 = строго вверх.")]
+    [Range(0f, 90f)]
+    [SerializeField] private float knockbackAngle = 45f;
+
     // Ссылки на компоненты
     private Animator animator;
     private Rigidbody2D rb;
@@ -37,7 +40,7 @@ public class PlayerHealth : MonoBehaviour, IDamageable
     private bool isDead = false;
     private bool isInvincible = false;
     private Color originalColor;
-
+    
     private void Awake()
     {
         // Безопасное получение компонентов с помощью TryGetComponent
@@ -45,11 +48,7 @@ public class PlayerHealth : MonoBehaviour, IDamageable
         if (!TryGetComponent(out rb)) Debug.LogError("Rigidbody2D не найден на " + gameObject.name);
         if (!TryGetComponent(out playerController)) Debug.LogError("PlayerController не найден на " + gameObject.name);
         if (!TryGetComponent(out playerMovement)) Debug.LogError("PlayerMovement не найден на " + gameObject.name);
-        
-        // SpriteRenderer может быть на дочернем объекте
-        spriteRenderer = GetComponentInChildren<SpriteRenderer>();
-        if (spriteRenderer == null) Debug.LogError("SpriteRenderer не найден на " + gameObject.name + " или его дочерних объектах");
-        
+        if (!TryGetComponent(out spriteRenderer)) Debug.LogError("SpriteRenderer не найден на " + gameObject.name);
         if (!TryGetComponent(out capsuleCollider)) Debug.LogError("CapsuleCollider2D не найден на " + gameObject.name);
 
         // Сохраняем начальные значения
@@ -58,9 +57,10 @@ public class PlayerHealth : MonoBehaviour, IDamageable
             originalColor = spriteRenderer.color;
         }
         currentHealth = maxHealth;
+
     }
 
-    public void TakeDamage(float damageAmount)
+    public void TakeDamage(float damageAmount, Vector2 knockbackSourcePosition)
     {
         if (isDead || isInvincible)
         {
@@ -69,113 +69,103 @@ public class PlayerHealth : MonoBehaviour, IDamageable
 
         currentHealth -= damageAmount;
         animator.SetTrigger("hurt");
-        StartCoroutine(HurtSequence());
+
+        // Запускаем корутину, передавая в нее позицию источника урона
+        StartCoroutine(HurtSequence(knockbackSourcePosition));
 
         if (currentHealth <= 0)
         {
-            Die();
+            // Передаем позицию источника и в метод смерти для финального отскока
+            Die(knockbackSourcePosition);
         }
     }
 
-    private IEnumerator HurtSequence()
+    private IEnumerator HurtSequence(Vector2 sourcePosition)
     {
         isInvincible = true;
 
-        // 1. Определяем, куда смотрит игрок.
-        // Мы используем transform.localScale.x, так как наш PlayerMovement меняет его для поворота.
-        // Если scale.x > 0, смотрит вправо (направление 1).
-        // Если scale.x < 0, смотрит влево (направление -1).
-        float playerDirection = Mathf.Sign(transform.localScale.x);
+        // 1. Применяем отскок
+        playerMovement.enabled = false;
+        ApplyKnockback(sourcePosition, knockbackForce);
 
-        // 2. Направление отскока - В ПРОТИВОПОЛОЖНУЮ сторону от взгляда игрока.
-        float knockbackDirectionX = -playerDirection;
+        // 2. Визуальная обратная связь
+        if (spriteRenderer != null)
+        {
+            spriteRenderer.color = hurtColor;
+            yield return new WaitForSeconds(hurtFlashDuration);
+            spriteRenderer.color = originalColor;
+        }
 
-        // 3. Создаем вектор отскока под 45 градусов вверх
-        Vector2 knockbackDirection = new Vector2(knockbackDirectionX, 1f).normalized;
-
-        // 4. Применяем силу
-        rb.linearVelocity = Vector2.zero;
-        rb.AddForce(knockbackDirection * knockbackForce, ForceMode2D.Impulse);
-
-        // 5. Визуальная обратная связь
-        spriteRenderer.color = hurtColor;
-        yield return new WaitForSeconds(hurtFlashDuration);
-        spriteRenderer.color = originalColor;
-
-        // 6. Оставшееся время неуязвимости
-        yield return new WaitForSeconds(invincibilityDuration - hurtFlashDuration);
+        // 3. Оставшееся время неуязвимости
+        // Убедимся, что не будет отрицательного ожидания
+        float remainingInvincibility = invincibilityDuration - hurtFlashDuration;
+        if (remainingInvincibility > 0)
+        {
+            yield return new WaitForSeconds(remainingInvincibility);
+        }
         isInvincible = false;
+        playerMovement.enabled = true;
     }
 
-    private void Die()
+    private void Die(Vector2 sourcePosition)
     {
         isDead = true;
         isInvincible = true;
 
-        // Отключаем управление и меняем физические свойства
         playerController.enabled = false;
         playerMovement.enabled = false;
-        rb.excludeLayers = layersToExcludeOnDeath;
-        gameObject.tag = "Untagged"; // Чтобы враги перестали нацеливаться
 
-        // Применяем отскок при смерти
-        ApplyKnockback(deathKnockbackForce);
+        gameObject.tag = "Untagged";
+        gameObject.layer = 0; // Слой Default
 
-        // Изменяем коллайдер, чтобы игрок "упал" на землю
         if (capsuleCollider != null)
         {
+            capsuleCollider.sharedMaterial = null;
             capsuleCollider.direction = CapsuleDirection2D.Horizontal;
             capsuleCollider.size = deathColliderSize;
         }
+
+        // Применяем финальный, более сильный отскок
+        ApplyKnockback(sourcePosition, deathKnockbackForce);
 
         if (animator != null)
         {
             animator.SetTrigger("death");
         }
-        
-        StartCoroutine(RestartLevelAfterDelay(2f));
+
+        StartCoroutine(FreezeAnimationOnDeath());
+        StartCoroutine(RestartLevel());
     }
 
-    /// <summary>
     /// Вычисляет направление и применяет силу отскока к Rigidbody.
-    /// </summary>
-    /// <param name="force">Сила отскока.</param>
-    private void ApplyKnockback(float force)
+    private void ApplyKnockback(Vector2 sourcePosition, float force)
     {
-        // 1. Определяем направление, в котором смотрит игрок (1 = вправо, -1 = влево)
-        // Это зависит от того, как реализован поворот в PlayerMovement.
-        // Если через transform.Rotate, то localScale.x не меняется.
-        // Если через изменение localScale.x, то этот метод работает.
-        // Давайте сделаем более надежный способ, который не зависит от реализации поворота.
-        // Мы возьмем его из PlayerMovement, если он есть.
-        float playerFacingDirection = 1f;
-        if (playerMovement != null)
+        // 1. Определяем направление ОТ источника К игроку
+        Vector2 directionFromSource = ((Vector2)transform.position - sourcePosition).normalized;
+        
+        // Если источник урона находится прямо там же, где и игрок (например, урон по таймеру),
+        // отталкиваем просто назад, чтобы избежать деления на ноль.
+        if (directionFromSource == Vector2.zero)
         {
-            // Предполагаем, что в PlayerMovement есть публичный метод или свойство для получения направления
-            // Если его нет, нужно будет добавить. А пока используем transform.localScale.x
-            playerFacingDirection = Mathf.Sign(transform.localScale.x);
+            directionFromSource = new Vector2(-transform.localScale.x, 0).normalized;
         }
 
-        // 2. Направление отскока - В ПРОТИВОПОЛОЖНУЮ сторону от взгляда
-        float knockbackDirectionX = -playerFacingDirection;
+        // 2. Определяем горизонтальное направление (1 или -1)
+        float directionX = Mathf.Sign(directionFromSource.x);
 
-        // 3. Создаем вектор отскока под 45 градусов вверх.
-        // Вектор (1, 1) или (-1, 1) - это и есть направление под 45 градусов.
-        // Нормализация делает его длину равной 1, сохраняя направление.
-        Vector2 knockbackVector = new Vector2(knockbackDirectionX, 1f).normalized;
+        // 3. Конвертируем угол из градусов в радианы для тригонометрии
+        float angleInRadians = knockbackAngle * Mathf.Deg2Rad;
         
-        // --- ОТЛАДКА ---
-        // Выведем в консоль, чтобы видеть, что происходит.
-        // Debug.Log($"Отскок: Направление игрока = {playerFacingDirection}, Вектор отскока = {knockbackVector}, Сила = {force}");
+        // 4. Вычисляем вектор отскока с заданным углом
+        // Мы используем тангенс, чтобы получить нужную высоту (Y) относительно горизонтали (X)
+        Vector2 knockbackVector = new Vector2(directionX, Mathf.Tan(angleInRadians)).normalized;
 
-        // 4. Применяем силу
+        // 5. Применяем силу
         rb.linearVelocity = Vector2.zero; // Обнуляем скорость для чистого импульса
         rb.AddForce(knockbackVector * force, ForceMode2D.Impulse);
     }
 
-    /// <summary>
     /// Корутина для визуального эффекта мигания.
-    /// </summary>
     private IEnumerator FlashEffect()
     {
         if (spriteRenderer == null) yield break;
@@ -183,16 +173,6 @@ public class PlayerHealth : MonoBehaviour, IDamageable
         spriteRenderer.color = hurtColor;
         yield return new WaitForSeconds(hurtFlashDuration);
         spriteRenderer.color = originalColor;
-    }
-
-    /// <summary>
-    /// Корутина для перезапуска уровня с задержкой.
-    /// </summary>
-    /// <param name="delay">Задержка в секундах перед перезапуском.</param>
-    private IEnumerator RestartLevelAfterDelay(float delay)
-    {
-        yield return new WaitForSeconds(delay);
-        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
 
     private IEnumerator FreezeAnimationOnDeath()
@@ -203,7 +183,7 @@ public class PlayerHealth : MonoBehaviour, IDamageable
     
     private IEnumerator RestartLevel()
     {
-        yield return new WaitForSeconds(2f);
+        yield return new WaitForSeconds(9f);
         SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
 }

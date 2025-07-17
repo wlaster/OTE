@@ -309,7 +309,15 @@ TextureImporter:
     secondaryTextures: []
     spriteCustomMetadata:
       entries: []
-    nameFileIdTable: {}
+    nameFileIdTable:
+      dragon_lord_walk_basic_74x74_0: 750332360592176245
+      dragon_lord_walk_basic_74x74_1: -4429004024922120458
+      dragon_lord_walk_basic_74x74_2: 4537972818219016065
+      dragon_lord_walk_basic_74x74_3: 249518461967950123
+      dragon_lord_walk_basic_74x74_4: -320216170344944636
+      dragon_lord_walk_basic_74x74_5: -8453168335543195693
+      dragon_lord_walk_basic_74x74_6: -6447615383226953857
+      dragon_lord_walk_basic_74x74_7: 9150128441963166041
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
