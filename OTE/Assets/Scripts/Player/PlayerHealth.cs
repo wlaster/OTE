@@ -69,6 +69,7 @@ public class PlayerHealth : MonoBehaviour, IDamageable
 
         currentHealth -= damageAmount;
         animator.SetTrigger("hurt");
+        Debug.Log($"Получено {damageAmount} урона. ");
 
         // Запускаем корутину, передавая в нее позицию источника урона
         StartCoroutine(HurtSequence(knockbackSourcePosition));

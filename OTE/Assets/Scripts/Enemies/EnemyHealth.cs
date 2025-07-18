@@ -85,24 +85,31 @@ public class EnemyHealth : MonoBehaviour, IDamageable
             baseEnemyScript.enabled = false;
         }
 
-        // Отключаем коллайдер, чтобы игрок мог пройти сквозь "труп"
-        mainCollider.enabled = false;
-        
-        // Отключаем физику, чтобы тело не падало и не каталось
+        transform.localScale = new Vector3(1.5f,0.5f,1.5f);
+        animator.speed = 0;
+
+        if (TryGetComponent<TouchDamage>(out var touchDamage))
+        {
+            Destroy(touchDamage);
+        }
+
+        if (TryGetComponent<CapsuleCollider2D>(out var capsuleCollider))
+        {
+            capsuleCollider.size /= 2;
+        }
+
         if (TryGetComponent<Rigidbody2D>(out var rb))
         {
             rb.linearVelocity = Vector2.zero;
             rb.bodyType = RigidbodyType2D.Kinematic;
         }
 
-        // Вызываем событие OnDeath. Сюда можно подключить систему выпадения лута, счетчик убийств и т.д.
-        OnDeath?.Invoke();
+        // if (TryGetComponent<Animator>(out var animator))
+        // {
+        //     animator.SetTrigger("death");
+        // }
 
-        // Запускаем анимацию смерти, если она есть
-        if (TryGetComponent<Animator>(out var animator))
-        {
-            animator.SetTrigger("death");
-        }
+        OnDeath?.Invoke();
 
         Destroy(gameObject, 2f);
     }
