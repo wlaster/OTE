@@ -1,40 +1,45 @@
-// FlyingGuardianAI.cs
+// FlyingGuardian.cs
 using UnityEngine;
 
+[RequireComponent(typeof(EnemyVision))]
 public class FlyingGuardian : Enemy
 {
-    [Header("Flying Guardian Settings")]
-    [SerializeField] private float detectionRange = 10f;
-    [SerializeField] private LayerMask playerLayer;
-
-    private Transform player;
+    private EnemyVision enemyVision;
     private Vector2 startingPosition;
+
+    private Vector2 direction;
 
     protected override void Awake()
     {
         base.Awake();
+        enemyVision = GetComponent<EnemyVision>();
         startingPosition = transform.position;
-        rb.gravityScale = 0; // Летающие враги не подвержены гравитации
+        rb.gravityScale = 0;
     }
-    
+
     protected override void Update()
     {
         base.Update();
-        DetectPlayer();
-        Vector2 direction;
+        HandleMovement();
+    }
 
-        if (player != null)
+
+    private void HandleMovement()
+    {
+        
+        if (enemyVision.CanSeePlayer)
         {
             // Летим к игроку
+            Transform player = enemyVision.Player;
             direction = (player.position - transform.position).normalized;
             rb.linearVelocity = direction * moveSpeed;
         }
         else
         {
-            // Возвращаемся на исходную позицию, если потеряли игрока
+            // Возвращаемся на исходную позицию
             direction = (startingPosition - (Vector2)transform.position).normalized;
             rb.linearVelocity = direction * moveSpeed;
-            
+
             if (Vector2.Distance(transform.position, startingPosition) < 0.1f)
             {
                 rb.linearVelocity = Vector2.zero;
@@ -45,17 +50,5 @@ public class FlyingGuardian : Enemy
         {
             Flip();
         }
-    }
-
-    private void DetectPlayer()
-    {
-        Collider2D playerCollider = Physics2D.OverlapCircle(transform.position, detectionRange, playerLayer);
-        player = (playerCollider != null) ? playerCollider.transform : null;
-    }
-
-    private void OnDrawGizmos()
-    {
-        Gizmos.color = Color.cyan;
-        Gizmos.DrawWireSphere(transform.position, detectionRange);
     }
 }

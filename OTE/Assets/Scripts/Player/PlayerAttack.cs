@@ -10,6 +10,8 @@ public class PlayerAttack : MonoBehaviour
     [SerializeField] private Transform attackPoint;
     [SerializeField] private float attackRange = 0.8f;
 
+    [SerializeField] private LayerMask hittableLayers; 
+
     private Animator animator;
 
     private void Awake()
@@ -43,7 +45,7 @@ public class PlayerAttack : MonoBehaviour
     // Event в КАДР УДАРА для каждой анимации.
     public void DealDamage()
     {
-        Collider2D[] hitEnemies = Physics2D.OverlapCircleAll(attackPoint.position, attackRange);
+        Collider2D[] hitEnemies = Physics2D.OverlapCircleAll(attackPoint.position, attackRange, hittableLayers);
         foreach (Collider2D enemyCollider in hitEnemies)
         {
             enemyCollider.GetComponent<IDamageable>()?.TakeDamage(attackDamage, transform.position);

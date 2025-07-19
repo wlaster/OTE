@@ -1,87 +1,77 @@
-// GuardianAI.cs
 using UnityEngine;
 
+[RequireComponent(typeof(EnemyVision))]
 public class Guardian : Enemy
 {
-    [Header("Guardian Settings")]
-    [SerializeField] private float detectionRange = 7f; // Дальность обнаружения игрока
-    [SerializeField] private float attackRange = 1.5f;  // Дальность атаки
-    [SerializeField] private LayerMask playerLayer;
+    [Header("Guardian AI Settings")]
+    [Tooltip("Дальность, на которой страж останавливается и начинает атаковать.")]
+    [SerializeField] private float attackRange = 1.8f;
 
-    // Ссылка на компонент атаки, чтобы его можно было выключить
-    [SerializeField] private GuardianAttack guardianAttack; 
-
-    private Transform player;
-    private bool isPlayerDetected = false;
+    private EnemyVision enemyVision;
+    private EnemyMeleeAttack meleeAttack;
 
     protected override void Awake()
     {
         base.Awake();
-        // На старте отключаем компонент атаки
-        if (guardianAttack != null) guardianAttack.enabled = false;
+        enemyVision = GetComponent<EnemyVision>();
+        meleeAttack = GetComponent<EnemyMeleeAttack>();
+
+        if (meleeAttack == null)
+        {
+            Debug.LogError("Компонент EnemyMeleeAttack не найден на " + gameObject.name);
+        }
     }
 
     protected override void Update()
     {
         base.Update();
-        DetectPlayer();
-
-        if (isPlayerDetected && player != null)
-        {
-            float distanceToPlayer = Vector2.Distance(transform.position, player.position);
-
-            // Если игрок в зоне атаки, останавливаемся и атакуем
-            if (distanceToPlayer <= attackRange)
-            {
-                rb.linearVelocity = new Vector2(0, rb.linearVelocity.y); // Останавливаемся
-                // animator.SetBool("isWalking", false);
-                if (guardianAttack != null) guardianAttack.enabled = true; // Включаем атаку
-            }
-            // Если игрок обнаружен, но далеко, преследуем его
-            else
-            {
-                if (guardianAttack != null) guardianAttack.enabled = false; // Выключаем атаку
-                MoveTowardsPlayer();
-            }
-        }
-        else
-        {
-            rb.linearVelocity = new Vector2(0, rb.linearVelocity.y); // Стоим на месте
-            // animator.SetBool("isWalking", false);
-        }
+        HandleAIState();
     }
 
-    private void DetectPlayer()
+    /// Основная логика принятия решений (машина состояний).
+    private void HandleAIState()
     {
-        Collider2D playerCollider = Physics2D.OverlapCircle(transform.position, detectionRange, playerLayer);
-        if (playerCollider != null)
+        // Если мы не видим игрока, переходим в состояние покоя
+        if (!enemyVision.CanSeePlayer)
         {
-            player = playerCollider.transform;
-            isPlayerDetected = true;
+            rb.linearVelocity = new Vector2(0, rb.linearVelocity.y);
+            animator.SetBool("isWalking", false);
+            return;
         }
-        else
-        {
-            isPlayerDetected = false;
-        }
-    }
 
-    private void MoveTowardsPlayer()
-    {
-        float direction = player.position.x > transform.position.x ? 1 : -1;
-        rb.linearVelocity = new Vector2(moveSpeed * direction, rb.linearVelocity.y);
-        // animator.SetBool("isWalking", true);
+        // Если мы здесь, значит, игрок в поле зрения
+        Transform player = enemyVision.Player;
+        float distanceToPlayer = Vector2.Distance(transform.position, player.position);
 
-        if ((direction > 0 && !isFacingRight) || (direction < 0 && isFacingRight))
+        // Поворачиваемся в сторону игрока
+        if ((player.position.x > transform.position.x && !isFacingRight) || (player.position.x < transform.position.x && isFacingRight))
         {
             Flip();
         }
+
+        // Проверяем, не проигрывается ли уже анимация атаки
+        bool isCurrentlyAttacking = animator.GetCurrentAnimatorStateInfo(0).IsTag("Attack");
+
+        // Если игрок в зоне атаки и мы не атакуем...
+        if (distanceToPlayer <= attackRange)
+        {
+            // ...переходим в состояние АТАКИ
+            rb.linearVelocity = new Vector2(0, rb.linearVelocity.y);
+            animator.SetBool("isWalking", false);
+            
+            // Отдаем команду на атаку
+            meleeAttack.PerformAttack();
+        }
+        else if (!isCurrentlyAttacking) // Если игрок далеко И мы не атакуем...
+        {
+            // ...переходим в состояние ПРЕСЛЕДОВАНИЯ
+            rb.linearVelocity = new Vector2(isFacingRight ? moveSpeed : -moveSpeed, rb.linearVelocity.y);
+            animator.SetBool("isWalking", true);
+        }
     }
 
-    // Визуализация
-    private void OnDrawGizmos()
+    private void OnDrawGizmosSelected()
     {
-        Gizmos.color = Color.yellow;
-        Gizmos.DrawWireSphere(transform.position, detectionRange);
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(transform.position, attackRange);
     }
