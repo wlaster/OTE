@@ -1,68 +1,121 @@
-// ArcherAI.cs
 using UnityEngine;
 
-public class Archer : Enemy
+/// <summary>
+/// Искусственный интеллект для врага-лучника.
+/// Использует EnemyVision для обнаружения цели и принимает решения на основе этого.
+/// </summary>
+[RequireComponent(typeof(EnemyVision))]
+public class ArcherAI : Enemy
 {
-    [Header("Archer Settings")]
-    [SerializeField] private float shootingRange = 12f;
-    [SerializeField] private float retreatDistance = 4f; // Дистанция, на которой начинает убегать
-    [SerializeField] private float fireRate = 2f; // Выстрелов в секунду
-    [SerializeField] private GameObject arrowPrefab;
-    [SerializeField] private Transform firePoint;
-    [SerializeField] private LayerMask playerLayer;
+    [Header("AI Behavior")]
+    [Tooltip("Дистанция, на которой лучник перестает убегать и начинает стрелять.")]
+    [SerializeField] private float idealShootingRange = 10f;
+    [Tooltip("Дистанция, на которой лучник начинает паниковать и убегать от игрока.")]
+    [SerializeField] private float retreatDistance = 4f;
 
-    private Transform player;
-    private float nextFireTime;
+    [Header("Combat")]
+    [Tooltip("Как быстро лучник стреляет (выстрелов в секунду).")]
+    [SerializeField] private float fireRate = 0.5f;
+    [Tooltip("Префаб стрелы, которую будет выпускать лучник.")]
+    [SerializeField] private GameObject arrowPrefab;
+    [Tooltip("Точка, из которой вылетает стрела.")]
+    [SerializeField] private Transform firePoint;
+    
+    // Ссылки
+    private EnemyVision enemyVision;
+    
+    // Состояние
+    private float nextFireTime = 0f;
+
+    protected override void Awake()
+    {
+        base.Awake();
+        enemyVision = GetComponent<EnemyVision>();
+        if (enemyVision == null)
+        {
+            Debug.LogError("Компонент EnemyVision не найден на " + gameObject.name, this);
+            enabled = false;
+        }
+    }
 
     protected override void Update()
     {
         base.Update();
-        DetectPlayer();
+        HandleAIState();
+    }
 
-        if (player != null)
+    private void HandleAIState()
+    {
+        // Просто проверяем флаг из компонента зрения
+        if (!enemyVision.CanSeePlayer)
         {
-            float distanceToPlayer = Vector2.Distance(transform.position, player.position);
-            Vector2 directionToPlayer = (player.position - transform.position).normalized;
+            // Состояние "ПОКОЙ"
+            rb.linearVelocity = new Vector2(0, rb.linearVelocity.y);
+            animator.SetBool("isWalking", false);
+            return;
+        }
 
-            // Поворачиваемся к игроку
-            if ((directionToPlayer.x > 0 && !isFacingRight) || (directionToPlayer.x < 0 && isFacingRight))
-            {
-                Flip();
-            }
+        // Если мы здесь, значит, мы видим игрока. Берем его из EnemyVision.
+        Transform player = enemyVision.Player;
+        if (player == null) return; // Дополнительная проверка на всякий случай
 
-            // Если игрок слишком близко - убегаем
-            if (distanceToPlayer < retreatDistance)
-            {
-                rb.linearVelocity = new Vector2(-directionToPlayer.x * moveSpeed, rb.linearVelocity.y);
-            }
-            // Если игрок в зоне досягаемости - стреляем
-            else if (distanceToPlayer <= shootingRange)
-            {
-                rb.linearVelocity = new Vector2(0, rb.linearVelocity.y); // Стоим и стреляем
-                if (Time.time >= nextFireTime)
-                {
-                    Shoot();
-                    nextFireTime = Time.time + 1f / fireRate;
-                }
-            }
-            else
-            {
-                 rb.linearVelocity = new Vector2(0, rb.linearVelocity.y);
-            }
+        float distanceToPlayer = Vector2.Distance(transform.position, player.position);
+
+        // Поворачиваемся в сторону игрока
+        if ((player.position.x > transform.position.x && !isFacingRight) || (player.position.x < transform.position.x && isFacingRight))
+        {
+            Flip();
+        }
+
+        // Если игрок слишком близко
+        if (distanceToPlayer < retreatDistance)
+        {
+            // Состояние "ПАНИКА/ОТСТУПЛЕНИЕ"
+            float direction = -Mathf.Sign(player.position.x - transform.position.x);
+            rb.linearVelocity = new Vector2(direction * moveSpeed, rb.linearVelocity.y);
+            animator.SetBool("isWalking", true);
+        }
+        // Если игрок на идеальной дистанции для стрельбы
+        else if (distanceToPlayer <= idealShootingRange)
+        {
+            // Состояние "СТРЕЛЬБА"
+            rb.linearVelocity = new Vector2(0, rb.linearVelocity.y);
+            animator.SetBool("isWalking", false);
+            TryToShoot();
+        }
+        else // Игрок виден, но слишком далеко (за пределами idealShootingRange)
+        {
+            // Состояние "СБЛИЖЕНИЕ"
+            float direction = Mathf.Sign(player.position.x - transform.position.x);
+            rb.linearVelocity = new Vector2(direction * moveSpeed, rb.linearVelocity.y);
+            animator.SetBool("isWalking", true);
         }
     }
 
-    private void DetectPlayer()
+    private void TryToShoot()
     {
-        Collider2D playerCollider = Physics2D.OverlapCircle(transform.position, shootingRange, playerLayer);
-        player = (playerCollider != null) ? playerCollider.transform : null;
+        if (Time.time > nextFireTime)
+        {
+            nextFireTime = Time.time + 1f / fireRate;
+            animator.SetTrigger("attack");
+        }
     }
 
-    private void Shoot()
+    // Этот метод вызывается из Animation Event
+    public void FireArrow()
     {
-        // Логика создания стрелы
-        Instantiate(arrowPrefab, firePoint.position, firePoint.rotation);
+        if (arrowPrefab != null && firePoint != null)
+        {
+            Instantiate(arrowPrefab, firePoint.position, firePoint.rotation);
+        }
     }
-
-    // ... Gizmos для отрисовки ...
+    
+    private void OnDrawGizmosSelected()
+    {
+        // Отрисовка зон для удобства
+        Gizmos.color = Color.green;
+        Gizmos.DrawWireSphere(transform.position, idealShootingRange);
+        Gizmos.color = Color.yellow;
+        Gizmos.DrawWireSphere(transform.position, retreatDistance);
+    }
 }

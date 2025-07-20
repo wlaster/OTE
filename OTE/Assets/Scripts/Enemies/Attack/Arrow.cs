@@ -1,28 +1,38 @@
-// Arrow.cs
 using UnityEngine;
 
 public class Arrow : MonoBehaviour
 {
-    [SerializeField] private float speed = 10f;
-    [SerializeField] private float damage = 15f;
-    
-    void Start()
+    [SerializeField] private float speed = 15f;
+    [SerializeField] private float damage = 10f;
+    [SerializeField] private float lifetime = 5f; // Время жизни стрелы в секундах
+    [SerializeField] private LayerMask hittableLayers; // Слои, которым стрела наносит урон (Player)
+    [SerializeField] private LayerMask obstacleLayers; // Слои, об которые стрела ломается (Ground, Walls)
+
+    private void Start()
     {
+        // Задаем начальную скорость
         GetComponent<Rigidbody2D>().linearVelocity = transform.right * speed;
-        Destroy(gameObject, 5f); // Самоуничтожение через 5 секунд
+        // Устанавливаем таймер на самоуничтожение
+        Destroy(gameObject, lifetime);
     }
-    
-    void OnTriggerEnter2D(Collider2D other)
+
+    private void OnTriggerEnter2D(Collider2D other)
     {
-        IDamageable damageable = other.GetComponent<IDamageable>();
-        if (damageable != null && other.CompareTag("Player"))
+        // Проверяем, попали ли мы в цель, которой можно нанести урон
+        if ((hittableLayers.value & (1 << other.gameObject.layer)) > 0)
         {
-            damageable.TakeDamage(damage, transform.position);
+            if (other.TryGetComponent<IDamageable>(out var damageableObject))
+            {
+                damageableObject.TakeDamage(damage, transform.position);
+            }
+            Destroy(gameObject); // Уничтожаем стрелу при попадании в цель
+            return;
         }
-        // Ломаемся обо все, кроме врагов и других снарядов
-        if(!other.CompareTag("Enemy") && !other.CompareTag("Projectile"))
+
+        // Проверяем, столкнулись ли мы с препятствием
+        if ((obstacleLayers.value & (1 << other.gameObject.layer)) > 0)
         {
-            Destroy(gameObject);
+            Destroy(gameObject); // Уничтожаем стрелу при столкновении со стеной
         }
     }
 }
