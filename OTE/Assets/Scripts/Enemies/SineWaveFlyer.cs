@@ -3,6 +3,7 @@ using UnityEngine;
 
 public class SineWaveFlyer : Enemy
 {
+
     [Header("Movement Settings")]
     [Tooltip("Амплитуда (высота) синусоидальной волны.")]
     [SerializeField] private float amplitude = 2f;
@@ -10,9 +11,16 @@ public class SineWaveFlyer : Enemy
     [SerializeField] private float frequency = 2f;
     [Tooltip("Максимальное расстояние по горизонтали от игрока, после которого враг развернется.")]
     [SerializeField] private float maxHorizontalDistance = 15f;
+
     [Header("Target")]
     [Tooltip("Перетащите сюда объект игрока со сцены.")]
     [SerializeField] private Transform playerTransform;
+
+    [Header("Activation Settings")]
+    [Tooltip("Максимальное расстояние до игрока для активации движения.")]
+    [SerializeField] private float activationDistance = 20f;
+
+    private bool isActivated = false;
 
     private float originalY;
     private float horizontalPosition;
@@ -39,8 +47,12 @@ public class SineWaveFlyer : Enemy
         base.Update();
         if (playerTransform == null) return;
 
-        HandleMovement();
-        CheckForTurnaround();
+        float distanceToPlayer = Vector2.Distance(transform.position, playerTransform.position);
+        if (distanceToPlayer <= activationDistance)
+        {
+            HandleMovement();
+            CheckForTurnaround();
+        }
     }
 
     private void HandleMovement()
