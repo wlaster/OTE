@@ -20,8 +20,6 @@ public class SineWaveFlyer : Enemy
     [Tooltip("Максимальное расстояние до игрока для активации движения.")]
     [SerializeField] private float activationDistance = 20f;
 
-    private bool isActivated = false;
-
     private float originalY;
     private float horizontalPosition;
     private float journeyTime = 0f;

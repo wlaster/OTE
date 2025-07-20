@@ -5,14 +5,21 @@ public class Arrow : MonoBehaviour
     [SerializeField] private float speed = 15f;
     [SerializeField] private float damage = 10f;
     [SerializeField] private float lifetime = 5f; // Время жизни стрелы в секундах
-    [SerializeField] private LayerMask hittableLayers; // Слои, которым стрела наносит урон (Player)
-    [SerializeField] private LayerMask obstacleLayers; // Слои, об которые стрела ломается (Ground, Walls)
+    [SerializeField] private LayerMask hittableLayers;
+    [SerializeField] private LayerMask obstacleLayers;
 
     private void Start()
     {
-        // Задаем начальную скорость
-        GetComponent<Rigidbody2D>().linearVelocity = transform.right * speed;
-        // Устанавливаем таймер на самоуничтожение
+        Vector2 direction = transform.right;
+        GameObject playerObj = GameObject.FindWithTag("Player");
+        if (playerObj != null)
+        {
+            direction = ((Vector2)playerObj.transform.position - (Vector2)transform.position).normalized;
+            // Поворачиваем стрелу по направлению
+            float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
+            transform.rotation = Quaternion.AngleAxis(angle, Vector3.forward);
+        }
+        GetComponent<Rigidbody2D>().linearVelocity = direction * speed;
         Destroy(gameObject, lifetime);
     }
 
@@ -25,14 +32,14 @@ public class Arrow : MonoBehaviour
             {
                 damageableObject.TakeDamage(damage, transform.position);
             }
-            Destroy(gameObject); // Уничтожаем стрелу при попадании в цель
+            Destroy(gameObject);
             return;
         }
 
         // Проверяем, столкнулись ли мы с препятствием
         if ((obstacleLayers.value & (1 << other.gameObject.layer)) > 0)
         {
-            Destroy(gameObject); // Уничтожаем стрелу при столкновении со стеной
+            Destroy(gameObject);
         }
     }
 }

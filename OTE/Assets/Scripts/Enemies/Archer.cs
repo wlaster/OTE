@@ -1,11 +1,9 @@
 using UnityEngine;
 
-/// <summary>
 /// Искусственный интеллект для врага-лучника.
 /// Использует EnemyVision для обнаружения цели и принимает решения на основе этого.
-/// </summary>
 [RequireComponent(typeof(EnemyVision))]
-public class ArcherAI : Enemy
+public class Archer : Enemy
 {
     [Header("AI Behavior")]
     [Tooltip("Дистанция, на которой лучник перестает убегать и начинает стрелять.")]
@@ -57,7 +55,7 @@ public class ArcherAI : Enemy
 
         // Если мы здесь, значит, мы видим игрока. Берем его из EnemyVision.
         Transform player = enemyVision.Player;
-        if (player == null) return; // Дополнительная проверка на всякий случай
+        if (player == null) return;
 
         float distanceToPlayer = Vector2.Distance(transform.position, player.position);
 
@@ -112,7 +110,6 @@ public class ArcherAI : Enemy
     
     private void OnDrawGizmosSelected()
     {
-        // Отрисовка зон для удобства
         Gizmos.color = Color.green;
         Gizmos.DrawWireSphere(transform.position, idealShootingRange);
         Gizmos.color = Color.yellow;
