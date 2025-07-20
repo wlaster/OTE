@@ -44,49 +44,65 @@ public class Archer : Enemy
 
     private void HandleAIState()
     {
-        // Просто проверяем флаг из компонента зрения
-        if (!enemyVision.CanSeePlayer)
+        if (!enemyVision.CanSeePlayer || enemyVision.Player == null)
         {
-            // Состояние "ПОКОЙ"
-            rb.linearVelocity = new Vector2(0, rb.linearVelocity.y);
-            animator.SetBool("isWalking", false);
+            PerformIdle();
             return;
         }
 
-        // Если мы здесь, значит, мы видим игрока. Берем его из EnemyVision.
         Transform player = enemyVision.Player;
-        if (player == null) return;
+        FacePlayer(player);
 
         float distanceToPlayer = Vector2.Distance(transform.position, player.position);
 
-        // Поворачиваемся в сторону игрока
-        if ((player.position.x > transform.position.x && !isFacingRight) || (player.position.x < transform.position.x && isFacingRight))
-        {
-            Flip();
-        }
-
-        // Если игрок слишком близко
         if (distanceToPlayer < retreatDistance)
         {
-            // Состояние "ПАНИКА/ОТСТУПЛЕНИЕ"
-            float direction = -Mathf.Sign(player.position.x - transform.position.x);
-            rb.linearVelocity = new Vector2(direction * moveSpeed, rb.linearVelocity.y);
-            animator.SetBool("isWalking", true);
+            PerformRetreat(player);
         }
-        // Если игрок на идеальной дистанции для стрельбы
         else if (distanceToPlayer <= idealShootingRange)
         {
-            // Состояние "СТРЕЛЬБА"
-            rb.linearVelocity = new Vector2(0, rb.linearVelocity.y);
-            animator.SetBool("isWalking", false);
-            TryToShoot();
+            PerformAttack();
         }
-        else // Игрок виден, но слишком далеко (за пределами idealShootingRange)
+        else
         {
-            // Состояние "СБЛИЖЕНИЕ"
-            float direction = Mathf.Sign(player.position.x - transform.position.x);
-            rb.linearVelocity = new Vector2(direction * moveSpeed, rb.linearVelocity.y);
-            animator.SetBool("isWalking", true);
+            PerformChase(player);
+        }
+    }
+
+    private void PerformIdle()
+    {
+        rb.linearVelocity = new Vector2(0, rb.linearVelocity.y);
+        animator.SetBool("isWalking", false);
+    }
+
+    private void PerformChase(Transform player)
+    {
+        float direction = Mathf.Sign(player.position.x - transform.position.x);
+        rb.linearVelocity = new Vector2(direction * moveSpeed, rb.linearVelocity.y);
+        animator.SetBool("isWalking", true);
+    }
+
+    private void PerformRetreat(Transform player)
+    {
+        float direction = -Mathf.Sign(player.position.x - transform.position.x);
+        rb.linearVelocity = new Vector2(direction * moveSpeed, rb.linearVelocity.y);
+        animator.SetBool("isWalking", true);
+    }
+
+    private void PerformAttack()
+    {
+        rb.linearVelocity = new Vector2(0, rb.linearVelocity.y);
+        animator.SetBool("isWalking", false);
+        TryToShoot();
+    }
+
+    private void FacePlayer(Transform player)
+    {
+        bool shouldFlip = (player.position.x > transform.position.x && !isFacingRight) || 
+                          (player.position.x < transform.position.x && isFacingRight);
+        if (shouldFlip)
+        {
+            Flip();
         }
     }
 
@@ -102,9 +118,14 @@ public class Archer : Enemy
     // Этот метод вызывается из Animation Event
     public void FireArrow()
     {
-        if (arrowPrefab != null && firePoint != null)
+        if (arrowPrefab != null && firePoint != null && enemyVision.Player != null)
         {
-            Instantiate(arrowPrefab, firePoint.position, firePoint.rotation);
+            GameObject arrowGO = Instantiate(arrowPrefab, firePoint.position, firePoint.rotation);
+            Arrow arrow = arrowGO.GetComponent<Arrow>();
+            if (arrow != null)
+            {
+                arrow.Initialize(enemyVision.Player);
+            }
         }
     }
     

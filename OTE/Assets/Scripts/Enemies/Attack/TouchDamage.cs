@@ -11,10 +11,10 @@ public class TouchDamage : MonoBehaviour
 
     private float lastDamageTime;
 
-    private void OnTriggerStay2D(Collider2D hitbox)
+    private void OnTriggerStay2D(Collider2D other)
     {
-        // Проверяем, что столкнулись с нужным слоем
-        if (targetLayer.value != (targetLayer.value | (1 << hitbox.gameObject.layer)))
+        // Проверяем, что столкнулись с нужным слоем. Эта проверка более стандартная и понятная.
+        if ((targetLayer.value & (1 << other.gameObject.layer)) == 0)
         {
             return;
         }
@@ -25,7 +25,7 @@ public class TouchDamage : MonoBehaviour
             return;
         }
 
-        if (hitbox.TryGetComponent<IDamageable>(out var damageableObject))
+        if (other.TryGetComponent<IDamageable>(out var damageableObject))
         {
             damageableObject.TakeDamage(damageAmount, transform.position);
             lastDamageTime = Time.time;

@@ -8,19 +8,27 @@ public class Arrow : MonoBehaviour
     [SerializeField] private LayerMask hittableLayers;
     [SerializeField] private LayerMask obstacleLayers;
 
+    private Rigidbody2D rb;
+
+    private void Awake()
+    {
+        rb = GetComponent<Rigidbody2D>();
+    }
+
     private void Start()
     {
-        Vector2 direction = transform.right;
-        GameObject playerObj = GameObject.FindWithTag("Player");
-        if (playerObj != null)
-        {
-            direction = ((Vector2)playerObj.transform.position - (Vector2)transform.position).normalized;
-            // Поворачиваем стрелу по направлению
-            float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
-            transform.rotation = Quaternion.AngleAxis(angle, Vector3.forward);
-        }
-        GetComponent<Rigidbody2D>().linearVelocity = direction * speed;
         Destroy(gameObject, lifetime);
+    }
+
+    public void Initialize(Transform target)
+    {
+        Vector2 direction = (target.position - transform.position).normalized;
+        
+        // Поворачиваем стрелу по направлению
+        float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
+        transform.rotation = Quaternion.AngleAxis(angle, Vector3.forward);
+        
+        rb.linearVelocity = direction * speed;
     }
 
     private void OnTriggerEnter2D(Collider2D other)
