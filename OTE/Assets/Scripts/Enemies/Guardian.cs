@@ -28,46 +28,66 @@ public class Guardian : Enemy
         HandleAIState();
     }
 
-    /// Основная логика принятия решений (машина состояний).
+    /// Основная логика принятия решений.
     private void HandleAIState()
     {
-        // Если мы не видим игрока, переходим в состояние покоя
         if (!enemyVision.CanSeePlayer)
         {
-            rb.linearVelocity = new Vector2(0, rb.linearVelocity.y);
-            animator.SetBool("isWalking", false);
+            Idle();
             return;
         }
 
-        // Если мы здесь, значит, игрок в поле зрения
         Transform player = enemyVision.Player;
-        float distanceToPlayer = Vector2.Distance(transform.position, player.position);
+        FacePlayer(player);
 
-        // Поворачиваемся в сторону игрока
-        if ((player.position.x > transform.position.x && !isFacingRight) || (player.position.x < transform.position.x && isFacingRight))
+        float distanceToPlayer = Vector2.Distance(transform.position, player.position);
+        bool isCurrentlyAttacking = animator.GetCurrentAnimatorStateInfo(0).IsTag("Attack");
+
+        if (distanceToPlayer <= attackRange)
+        {
+            Attack();
+        }
+        else if (!isCurrentlyAttacking)
+        {
+            Chase();
+        }
+    }
+
+    /// Состояние покоя: враг останавливается.
+    private void Idle()
+    {
+        StopMoving();
+    }
+
+    /// Состояние преследования: враг движется к игроку.
+    private void Chase()
+    {
+        rb.linearVelocity = new Vector2(isFacingRight ? moveSpeed : -moveSpeed, rb.linearVelocity.y);
+        animator.SetBool("isWalking", true);
+    }
+
+    /// Состояние атаки: враг останавливается и атакует.
+    private void Attack()
+    {
+        StopMoving();
+        meleeAttack.PerformAttack();
+    }
+
+    /// Поворачивает врага лицом к игроку.
+    private void FacePlayer(Transform player)
+    {
+        if ((player.position.x > transform.position.x && !isFacingRight) || 
+            (player.position.x < transform.position.x && isFacingRight))
         {
             Flip();
         }
+    }
 
-        // Проверяем, не проигрывается ли уже анимация атаки
-        bool isCurrentlyAttacking = animator.GetCurrentAnimatorStateInfo(0).IsTag("Attack");
-
-        // Если игрок в зоне атаки и мы не атакуем...
-        if (distanceToPlayer <= attackRange)
-        {
-            // ...переходим в состояние АТАКИ
-            rb.linearVelocity = new Vector2(0, rb.linearVelocity.y);
-            animator.SetBool("isWalking", false);
-            
-            // Отдаем команду на атаку
-            meleeAttack.PerformAttack();
-        }
-        else if (!isCurrentlyAttacking) // Если игрок далеко И мы не атакуем...
-        {
-            // ...переходим в состояние ПРЕСЛЕДОВАНИЯ
-            rb.linearVelocity = new Vector2(isFacingRight ? moveSpeed : -moveSpeed, rb.linearVelocity.y);
-            animator.SetBool("isWalking", true);
-        }
+    /// Останавливает горизонтальное движение.
+    private void StopMoving()
+    {
+        rb.linearVelocity = new Vector2(0, rb.linearVelocity.y);
+        animator.SetBool("isWalking", false);
     }
 
     private void OnDrawGizmosSelected()
