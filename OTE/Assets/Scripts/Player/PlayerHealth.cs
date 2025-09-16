@@ -40,7 +40,7 @@ public class PlayerHealth : MonoBehaviour, IDamageable
     private bool isDead = false;
     private bool isInvincible = false;
     private Color originalColor;
-    
+
     private void Awake()
     {
         // Безопасное получение компонентов с помощью TryGetComponent
@@ -143,7 +143,7 @@ public class PlayerHealth : MonoBehaviour, IDamageable
     {
         // 1. Определяем направление ОТ источника К игроку
         Vector2 directionFromSource = ((Vector2)transform.position - sourcePosition).normalized;
-        
+
         // Если источник урона находится прямо там же, где и игрок (например, урон по таймеру),
         // отталкиваем просто назад, чтобы избежать деления на ноль.
         if (directionFromSource == Vector2.zero)
@@ -156,7 +156,7 @@ public class PlayerHealth : MonoBehaviour, IDamageable
 
         // 3. Конвертируем угол из градусов в радианы для тригонометрии
         float angleInRadians = knockbackAngle * Mathf.Deg2Rad;
-        
+
         // 4. Вычисляем вектор отскока с заданным углом
         // Мы используем тангенс, чтобы получить нужную высоту (Y) относительно горизонтали (X)
         Vector2 knockbackVector = new Vector2(directionX, Mathf.Tan(angleInRadians)).normalized;
@@ -181,10 +181,21 @@ public class PlayerHealth : MonoBehaviour, IDamageable
         yield return new WaitForSeconds(1f);
         animator.speed = 0;
     }
-    
+
     private IEnumerator RestartLevel()
     {
         yield return new WaitForSeconds(9f);
         SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+    }
+    
+    public float GetCurrentHealth()
+    {
+    return currentHealth;
+    }
+
+    public void SetCurrentHealth(float health)
+    {
+    currentHealth = health;
+    // Здесь можно добавить обновление UI полоски здоровья
     }
 }
