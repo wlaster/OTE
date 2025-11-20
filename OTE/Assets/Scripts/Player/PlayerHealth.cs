@@ -1,6 +1,11 @@
 using UnityEngine;
 using System.Collections;
 using UnityEngine.SceneManagement;
+using UnityEngine.Events; // Убедитесь, что эта строка есть
+
+
+[System.Serializable]
+public class HealthChangedEvent : UnityEvent<float, float> { }
 
 [RequireComponent(typeof(Rigidbody2D))]
 [RequireComponent(typeof(Animator))]
@@ -27,6 +32,11 @@ public class PlayerHealth : MonoBehaviour, IDamageable
     [Range(0f, 90f)]
     [SerializeField] private float knockbackAngle = 45f;
 
+    [Space]
+    [Header("Events")]
+    [Tooltip("Событие, которое вызывается при изменении здоровья. Передает (currentHealth, maxHealth).")]
+    public HealthChangedEvent OnHealthChanged;
+
     // Ссылки на компоненты
     private Animator animator;
     private Rigidbody2D rb;
@@ -40,7 +50,7 @@ public class PlayerHealth : MonoBehaviour, IDamageable
     private bool isDead = false;
     private bool isInvincible = false;
     private Color originalColor;
-    
+
     private void Awake()
     {
         // Безопасное получение компонентов с помощью TryGetComponent
@@ -60,6 +70,12 @@ public class PlayerHealth : MonoBehaviour, IDamageable
 
     }
 
+    private void Start()
+    {
+        // При старте игры один раз сообщаем UI актуальное здоровье, чтобы он правильно отобразился
+        OnHealthChanged?.Invoke(currentHealth, maxHealth);
+    }
+
     public void TakeDamage(float damageAmount, Vector2 knockbackSourcePosition)
     {
         if (isDead || isInvincible)
@@ -69,6 +85,9 @@ public class PlayerHealth : MonoBehaviour, IDamageable
 
         currentHealth -= damageAmount;
         animator.SetTrigger("hurt");
+        Debug.Log($"Получено {damageAmount} урона. ");
+
+        OnHealthChanged?.Invoke(currentHealth, maxHealth);
 
         // Запускаем корутину, передавая в нее позицию источника урона
         StartCoroutine(HurtSequence(knockbackSourcePosition));
@@ -142,7 +161,7 @@ public class PlayerHealth : MonoBehaviour, IDamageable
     {
         // 1. Определяем направление ОТ источника К игроку
         Vector2 directionFromSource = ((Vector2)transform.position - sourcePosition).normalized;
-        
+
         // Если источник урона находится прямо там же, где и игрок (например, урон по таймеру),
         // отталкиваем просто назад, чтобы избежать деления на ноль.
         if (directionFromSource == Vector2.zero)
@@ -155,7 +174,7 @@ public class PlayerHealth : MonoBehaviour, IDamageable
 
         // 3. Конвертируем угол из градусов в радианы для тригонометрии
         float angleInRadians = knockbackAngle * Mathf.Deg2Rad;
-        
+
         // 4. Вычисляем вектор отскока с заданным углом
         // Мы используем тангенс, чтобы получить нужную высоту (Y) относительно горизонтали (X)
         Vector2 knockbackVector = new Vector2(directionX, Mathf.Tan(angleInRadians)).normalized;
@@ -180,10 +199,21 @@ public class PlayerHealth : MonoBehaviour, IDamageable
         yield return new WaitForSeconds(1f);
         animator.speed = 0;
     }
-    
+
     private IEnumerator RestartLevel()
     {
         yield return new WaitForSeconds(9f);
         SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+    }
+    
+    public float GetCurrentHealth()
+    {
+    return currentHealth;
+    }
+
+    public void SetCurrentHealth(float health)
+    {
+        currentHealth = Mathf.Clamp(health, 0, maxHealth);
+        OnHealthChanged?.Invoke(currentHealth, maxHealth);
     }
 }

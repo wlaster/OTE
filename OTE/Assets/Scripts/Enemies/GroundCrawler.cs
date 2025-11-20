@@ -1,4 +1,4 @@
-// GroundCrawlerAI.cs
+// GroundCrawler.cs
 using UnityEngine;
 
 public class GroundCrawler : Enemy
@@ -17,7 +17,6 @@ public class GroundCrawler : Enemy
 
     private void FixedUpdate()
     {
-        // Движение вперед
         rb.linearVelocity = transform.right * moveSpeed;
 
         animator.SetBool("isWalking", true);
@@ -37,5 +36,4 @@ public class GroundCrawler : Enemy
             transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.fixedDeltaTime * rotationSpeed);
         }
     }
-    // Flip() здесь не нужен в классическом виде, так как вращается весь объект
 }

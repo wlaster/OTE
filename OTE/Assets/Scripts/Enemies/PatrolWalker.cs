@@ -14,7 +14,7 @@ public class PatrolWalker : Enemy
 
     protected override void Update()
     {
-        base.Update(); // Вызываем базовый Update, если там есть логика
+        base.Update();
 
         isGrounded = Physics2D.OverlapCircle(groundCheck.position, checkRadius, groundLayer);
         isTouchingWall = Physics2D.OverlapCircle(wallCheck.position, checkRadius, groundLayer);
@@ -31,7 +31,6 @@ public class PatrolWalker : Enemy
         rb.linearVelocity = new Vector2(isFacingRight ? moveSpeed : -moveSpeed, rb.linearVelocity.y);
     }
 
-    // Визуализация для настройки
     private void OnDrawGizmos()
     {
         Gizmos.color = Color.blue;

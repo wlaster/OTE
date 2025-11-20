@@ -15,6 +15,13 @@ public class PlayerController : MonoBehaviour
 
     private void Update()
     {
+
+        // Если игра на паузе, мы ничего не делаем.
+        if (PauseMenuManager.IsGamePaused)
+        {
+        return;
+        }
+        
         // --- ДВИЖЕНИЕ ---
         float moveDirection = Input.GetAxisRaw("Horizontal");
         playerMovement.SetDirectionalInput(moveDirection);
