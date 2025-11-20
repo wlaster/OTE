@@ -1,6 +1,11 @@
 using UnityEngine;
 using System.Collections;
 using UnityEngine.SceneManagement;
+using UnityEngine.Events; // Убедитесь, что эта строка есть
+
+
+[System.Serializable]
+public class HealthChangedEvent : UnityEvent<float, float> { }
 
 [RequireComponent(typeof(Rigidbody2D))]
 [RequireComponent(typeof(Animator))]
@@ -26,6 +31,11 @@ public class PlayerHealth : MonoBehaviour, IDamageable
     [Tooltip("Угол отскока в градусах. 45 = вверх-вбок, 90 = строго вверх.")]
     [Range(0f, 90f)]
     [SerializeField] private float knockbackAngle = 45f;
+
+    [Space]
+    [Header("Events")]
+    [Tooltip("Событие, которое вызывается при изменении здоровья. Передает (currentHealth, maxHealth).")]
+    public HealthChangedEvent OnHealthChanged;
 
     // Ссылки на компоненты
     private Animator animator;
@@ -60,6 +70,12 @@ public class PlayerHealth : MonoBehaviour, IDamageable
 
     }
 
+    private void Start()
+    {
+        // При старте игры один раз сообщаем UI актуальное здоровье, чтобы он правильно отобразился
+        OnHealthChanged?.Invoke(currentHealth, maxHealth);
+    }
+
     public void TakeDamage(float damageAmount, Vector2 knockbackSourcePosition)
     {
         if (isDead || isInvincible)
@@ -70,6 +86,8 @@ public class PlayerHealth : MonoBehaviour, IDamageable
         currentHealth -= damageAmount;
         animator.SetTrigger("hurt");
         Debug.Log($"Получено {damageAmount} урона. ");
+
+        OnHealthChanged?.Invoke(currentHealth, maxHealth);
 
         // Запускаем корутину, передавая в нее позицию источника урона
         StartCoroutine(HurtSequence(knockbackSourcePosition));
@@ -195,7 +213,7 @@ public class PlayerHealth : MonoBehaviour, IDamageable
 
     public void SetCurrentHealth(float health)
     {
-    currentHealth = health;
-    // Здесь можно добавить обновление UI полоски здоровья
+        currentHealth = Mathf.Clamp(health, 0, maxHealth);
+        OnHealthChanged?.Invoke(currentHealth, maxHealth);
     }
 }
