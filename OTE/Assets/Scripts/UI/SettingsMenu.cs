@@ -13,26 +13,40 @@ public class SettingsMenu : MonoBehaviour
 
     private void LoadSettings()
     {
-        // Загружаем сохраненное значение. Если его нет, по умолчанию будет 1 (true).
+        // 1 = Fullscreen Window (безрамочный), 0 = обычное окно
         bool isFullscreen = PlayerPrefs.GetInt("IsFullscreen", 1) == 1;
-        
+
         if (fullscreenToggle != null)
         {
             fullscreenToggle.isOn = isFullscreen;
+            fullscreenToggle.onValueChanged.RemoveAllListeners(); // на всякий случай очищаем
+            fullscreenToggle.onValueChanged.AddListener(SetFullscreen);
         }
-        
-        // Применяем настройку при запуске
-        Screen.fullScreen = isFullscreen;
+
+        ApplyFullscreen(isFullscreen);
     }
 
-    // Этот метод будет вызываться при изменении состояния Toggle
+    // Вызывается при изменении Toggle
     public void SetFullscreen(bool isFullscreen)
     {
-        Screen.fullScreen = isFullscreen;
-        
-        // Сохраняем настройку. 1 для true, 0 для false.
+        ApplyFullscreen(isFullscreen);
+
         PlayerPrefs.SetInt("IsFullscreen", isFullscreen ? 1 : 0);
-        PlayerPrefs.Save(); // Немедленно записываем на диск
+        PlayerPrefs.Save();
+    }
+
+    private void ApplyFullscreen(bool isFullscreen)
+    {
+        if (isFullscreen)
+        {
+            Resolution nativeRes = Screen.currentResolution;
+            Screen.SetResolution(nativeRes.width, nativeRes.height, FullScreenMode.FullScreenWindow);
+        }
+        else
+        {
+            // Обычный оконный режим
+            Screen.fullScreenMode = FullScreenMode.Windowed;
+        }
     }
 
     public void BackToMainMenu()

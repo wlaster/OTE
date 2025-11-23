@@ -10,17 +10,22 @@ public class PauseMenuManager : MonoBehaviour
     [Tooltip("Имя сцены главного меню для загрузки.")]
     [SerializeField] private string mainMenuSceneName = "MainMenu";
 
+    [Tooltip("Ссылка на объект с игровым интерфейсом (здоровье и т.д.), чтобы скрывать его при паузе.")]
+    [SerializeField] private GameObject gameInterface; 
+
+    [Tooltip("Панель с настройками, которая будет открываться поверх паузы.")]
+    [SerializeField] private GameObject settingsMenuPanel; 
+
     public static bool IsGamePaused { get; private set; }
 
     private void Start()
     {
-        // Убедимся, что при старте уровня меню выключено, а игра не на паузе
-        if (pauseMenuPanel != null)
-        {
-            pauseMenuPanel.SetActive(false);
-        }
+        if (pauseMenuPanel != null) pauseMenuPanel.SetActive(false);
+        if (settingsMenuPanel != null) settingsMenuPanel.SetActive(false);
+        if (gameInterface != null) gameInterface.SetActive(true);
+
         IsGamePaused = false;
-        Time.timeScale = 1f; // Убедимся, что время идет нормально
+        Time.timeScale = 1f;
     }
 
     private void Update()
@@ -44,15 +49,13 @@ public class PauseMenuManager : MonoBehaviour
     /// </summary>
     public void PauseGame()
     {
-        if (pauseMenuPanel != null)
-        {
-            pauseMenuPanel.SetActive(true);
-        }
-
-        // Останавливаем время в игре
+        if (pauseMenuPanel != null) pauseMenuPanel.SetActive(true);
+        
+        // Скрываем интерфейс игры
+        if (gameInterface != null) gameInterface.SetActive(false);
+        
         Time.timeScale = 0f;
         IsGamePaused = true;
-        Debug.Log("Игра на паузе.");
     }
 
     /// <summary>
@@ -60,15 +63,13 @@ public class PauseMenuManager : MonoBehaviour
     /// </summary>
     public void ResumeGame()
     {
-        if (pauseMenuPanel != null)
-        {
-            pauseMenuPanel.SetActive(false);
-        }
-
-        // Возобновляем течение времени
+        if (pauseMenuPanel != null) pauseMenuPanel.SetActive(false);
+        
+        // Возвращаем интерфейс игры
+        if (gameInterface != null) gameInterface.SetActive(true);
+        
         Time.timeScale = 1f;
         IsGamePaused = false;
-        Debug.Log("Игра снята с паузы.");
     }
 
     /// <summary>
@@ -86,10 +87,16 @@ public class PauseMenuManager : MonoBehaviour
     /// </summary>
     public void OpenSettings()
     {
-        // Важно: мы не можем просто загрузить сцену, так как это выгрузит наш игровой уровень.
-        // Мы должны загрузить сцену настроек "поверх" текущей.
-        Debug.Log("Открытие настроек... (пока не реализовано, требует SceneManager.LoadSceneAsync)");
-        // SceneManager.LoadScene("SettingsMenu", LoadSceneMode.Additive);
+        if (pauseMenuPanel != null) pauseMenuPanel.SetActive(false);
+
+        if (settingsMenuPanel != null) settingsMenuPanel.SetActive(true);
+    }
+
+    public void CloseSettings()
+    {
+        if (settingsMenuPanel != null) settingsMenuPanel.SetActive(false);
+        
+        if (pauseMenuPanel != null) pauseMenuPanel.SetActive(true);
     }
     
     public void LoadMainMenu()
