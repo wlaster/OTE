@@ -53,7 +53,7 @@ public class MainMenuManager : MonoBehaviour
     public void OpenSettings()
     {
         // Загружаем сцену с настройками
-        SceneManager.LoadScene("SettingsMenu"); // Убедитесь, что у вас есть сцена с таким именем
+        SceneManager.LoadScene("SettingsMenu");
     }
 
     public void QuitGame()
