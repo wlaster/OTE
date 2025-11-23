@@ -7,58 +7,85 @@ public class MainMenuManager : MonoBehaviour
     [Header("Buttons")]
     [SerializeField] private Button continueButton;
 
+    [Header("Panels")]
+    [SerializeField] private GameObject mainPanel;
+    [SerializeField] private GameObject settingsPanel;
+
     [Header("Scene Names")]
-    [Tooltip("Имя сцены, которую нужно загрузить для новой игры.")]
-    [SerializeField] private string newGameSceneName = "Level1_Prototype"; // Укажите имя вашей первой игровой сцены
+    [SerializeField] private string newGameSceneName = "Level1_Prototype";
 
     private void Start()
     {
-        // Используем более надежную проверку
-        if (continueButton != null)
+        // --- ВОТ КАК ТЕПЕРЬ ВЫГЛЯДИТ ПРИМЕНЕНИЕ ---
+        // 1. Загружаем данные
+        SettingsData savedData = SettingsIO.LoadSettings();
+        
+        // 2. Вызываем статический метод из соседнего скрипта.
+        // Нам НЕ НУЖНА ссылка на SettingsMenu, и неважно, включена ли панель.
+        SettingsMenu.ApplyGameSettings(savedData);
+        // ------------------------------------------
+
+        CheckForSaveFile();
+        ShowMainPanel();
+    }
+
+    private void ApplySavedSettings()
+    {
+        SettingsData data = SettingsIO.LoadSettings();
+        if (data.isFullscreen)
         {
-            continueButton.interactable = SaveSystem.DoesSaveFileExist();
+            Resolution nativeRes = Screen.currentResolution;
+            Screen.SetResolution(nativeRes.width, nativeRes.height, FullScreenMode.FullScreenWindow);
+        }
+        else
+        {
+            Screen.SetResolution(1280, 720, FullScreenMode.Windowed);
         }
     }
 
     private void CheckForSaveFile()
     {
-        // PlayerPrefs - это простейшая система сохранения в Unity.
-        // Мы проверяем, есть ли у нас ключ "SaveFileExists".
-        // HasKey возвращает 1 (true) если ключ есть, и 0 (false) если нет.
         bool saveFileExists = PlayerPrefs.GetInt("SaveFileExists", 0) == 1;
-
-        if (continueButton != null)
-        {
-            // interactable делает кнопку активной или неактивной (серой).
-            continueButton.interactable = saveFileExists;
-        }
+        if (continueButton != null) continueButton.interactable = saveFileExists;
     }
 
-    // --- МЕТОДЫ ДЛЯ КНОПОК ---
-
-    public void NewGame()
-    {
-        // Удаляем старый файл сохранения при старте новой игры
-        SaveSystem.DeleteSaveFile();
-        SceneManager.LoadScene(newGameSceneName);
-    }
-    public void ContinueGame()
-    {
-        // Создаем временный объект, который загрузит игру
-        GameObject tempManager = new GameObject("TempGameManager");
-        tempManager.AddComponent<GameManager>().LoadGame();
-        // Этот объект самоуничтожится при загрузке новой сцены
-    }
+    // --- ЛОГИКА ПЕРЕКЛЮЧЕНИЯ ПАНЕЛЕЙ ---
 
     public void OpenSettings()
     {
-        // Загружаем сцену с настройками
-        SceneManager.LoadScene("SettingsMenu");
+        mainPanel.SetActive(false);
+        settingsPanel.SetActive(true);
+    }
+
+    public void CloseSettings() // Это для кнопки "Назад"
+    {
+        settingsPanel.SetActive(false);
+        mainPanel.SetActive(true);
+    }
+
+    private void ShowMainPanel()
+    {
+        mainPanel.SetActive(true);
+        settingsPanel.SetActive(false);
+    }
+
+    // --- ИГРОВЫЕ МЕТОДЫ ---
+
+    public void NewGame()
+    {
+        SaveSystem.DeleteSaveFile();
+        SceneManager.LoadScene(newGameSceneName);
+    }
+
+    public void ContinueGame()
+    {
+        // Создаем временный объект для загрузки
+        GameObject tempManager = new GameObject("TempGameManager");
+        tempManager.AddComponent<GameManager>().LoadGame();
     }
 
     public void QuitGame()
     {
-        Debug.Log("Выход из игры...");
         Application.Quit();
     }
 }

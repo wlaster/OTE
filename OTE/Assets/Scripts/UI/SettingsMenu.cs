@@ -1,56 +1,57 @@
 using UnityEngine;
 using UnityEngine.UI;
-using UnityEngine.SceneManagement;
 
 public class SettingsMenu : MonoBehaviour
 {
+    [Header("UI References")]
     [SerializeField] private Toggle fullscreenToggle;
+
+    private SettingsData currentSettings;
 
     private void Start()
     {
-        LoadSettings();
+        currentSettings = SettingsIO.LoadSettings();
+
+        UpdateUI();
+
+        ApplyGameSettings(currentSettings);
     }
 
-    private void LoadSettings()
+    private void UpdateUI()
     {
-        // 1 = Fullscreen Window (безрамочный), 0 = обычное окно
-        bool isFullscreen = PlayerPrefs.GetInt("IsFullscreen", 1) == 1;
-
         if (fullscreenToggle != null)
         {
-            fullscreenToggle.isOn = isFullscreen;
-            fullscreenToggle.onValueChanged.RemoveAllListeners(); // на всякий случай очищаем
+            fullscreenToggle.onValueChanged.RemoveAllListeners();
+            
+            fullscreenToggle.isOn = currentSettings.isFullscreen;
+            
             fullscreenToggle.onValueChanged.AddListener(SetFullscreen);
         }
-
-        ApplyFullscreen(isFullscreen);
     }
 
-    // Вызывается при изменении Toggle
+
     public void SetFullscreen(bool isFullscreen)
     {
-        ApplyFullscreen(isFullscreen);
+        currentSettings.isFullscreen = isFullscreen;
 
-        PlayerPrefs.SetInt("IsFullscreen", isFullscreen ? 1 : 0);
-        PlayerPrefs.Save();
+        SettingsIO.SaveSettings(currentSettings);
+
+        ApplyGameSettings(currentSettings);
     }
-
-    private void ApplyFullscreen(bool isFullscreen)
+    
+    public static void ApplyGameSettings(SettingsData data)
     {
-        if (isFullscreen)
+        if (data.isFullscreen)
         {
             Resolution nativeRes = Screen.currentResolution;
             Screen.SetResolution(nativeRes.width, nativeRes.height, FullScreenMode.FullScreenWindow);
         }
         else
         {
-            // Обычный оконный режим
-            Screen.fullScreenMode = FullScreenMode.Windowed;
+            Screen.SetResolution(1280, 720, FullScreenMode.Windowed);
         }
-    }
 
-    public void BackToMainMenu()
-    {
-        SceneManager.LoadScene("MainMenu");
+        // --- ЗВУК (Заготовка на будущее) ---
+        // AudioListener.volume = data.volume;
     }
 }
