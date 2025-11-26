@@ -1,6 +1,9 @@
 using UnityEngine;
 
 [RequireComponent(typeof(Rigidbody2D), typeof(Animator))]
+/// <summary>
+/// Управляет движением игрока: горизонтальным перемещением, прыжком и анимациями.
+/// </summary>
 public class PlayerMovement : MonoBehaviour
 {
     [Header("Movement Settings")]
@@ -12,43 +15,57 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] private float groundCheckRadius = 0.2f;
     [SerializeField] private LayerMask groundLayer;
 
-    // Компоненты
+    
     private Rigidbody2D rb;
     private Animator animator;
 
-    // Состояние
+    
     private float moveInput;
     private bool isGrounded;
     private bool isFacingRight = true;
 
+    /// <summary>
+    /// Инициализация компонентов: кэширую Rigidbody2D и Animator.
+    /// </summary>
     private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
         animator = GetComponent<Animator>();
     }
 
+    /// <summary>
+    /// Ежемесячное обновление: проверка касания земли, обновление анимаций и ориентации спрайта.
+    /// </summary>
     private void Update()
     {
-        // Проверяем состояние "на земле" каждый кадр для быстрой реакции анимации
         isGrounded = Physics2D.OverlapCircle(groundCheck.position, groundCheckRadius, groundLayer);
-        
+
         UpdateAnimationState();
         Flip();
     }
 
+    /// <summary>
+    /// Физическое обновление: применяет горизонтальную скорость к Rigidbody2D.
+    /// </summary>
     private void FixedUpdate()
     {
-        // Применяем физику движения в FixedUpdate
         rb.linearVelocity = new Vector2(moveInput * moveSpeed, rb.linearVelocity.y);
     }
 
-    // Этот метод вызывается из PlayerController
+    
+    /// <summary>
+    /// Устанавливает направление движения от ввода (влево/вправо).
+    /// </summary>
+    /// <param name="direction">Значение направления: -1, 0 или 1.</param>
     public void SetDirectionalInput(float direction)
     {
         moveInput = direction;
     }
 
-    // Этот метод вызывается из PlayerController
+    
+    /// <summary>
+    /// Выполняет прыжок, если игрок стоит на земле.
+    /// </summary>
     public void Jump()
     {
         if (isGrounded)
@@ -57,12 +74,18 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Обновляет параметры аниматора в соответствии с состоянием движения и прыжка.
+    /// </summary>
     private void UpdateAnimationState()
     {
         animator.SetBool("isRunning", moveInput != 0 && isGrounded);
         animator.SetBool("isJumping", !isGrounded);
     }
 
+    /// <summary>
+    /// Поворачивает спрайт персонажа при смене направления движения.
+    /// </summary>
     private void Flip()
     {
         if ((moveInput > 0 && !isFacingRight) || (moveInput < 0 && isFacingRight))

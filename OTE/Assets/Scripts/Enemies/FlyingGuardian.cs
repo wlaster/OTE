@@ -1,7 +1,10 @@
-// FlyingGuardian.cs
+
 using UnityEngine;
 
 [RequireComponent(typeof(EnemyVision))]
+/// <summary>
+/// Летающий страж: патрулирует вокруг стартовой позиции и преследует игрока при обнаружении.
+/// </summary>
 public class FlyingGuardian : Enemy
 {
     private EnemyVision enemyVision;
@@ -9,6 +12,9 @@ public class FlyingGuardian : Enemy
 
     private Vector2 direction;
 
+    /// <summary>
+    /// Инициализация: кэширует `EnemyVision`, сохраняет стартовую позицию и отключает гравитацию.
+    /// </summary>
     protected override void Awake()
     {
         base.Awake();
@@ -17,6 +23,9 @@ public class FlyingGuardian : Enemy
         rb.gravityScale = 0;
     }
 
+    /// <summary>
+    /// Обновление: выполняет логику движения каждый кадр.
+    /// </summary>
     protected override void Update()
     {
         base.Update();
@@ -24,19 +33,19 @@ public class FlyingGuardian : Enemy
     }
 
 
+    /// <summary>
+    /// Управляет перемещением: преследует игрока или возвращается к стартовой позиции.
+    /// </summary>
     private void HandleMovement()
     {
-        
         if (enemyVision.CanSeePlayer)
         {
-            // Летим к игроку
             Transform player = enemyVision.Player;
             direction = (player.position - transform.position).normalized;
             rb.linearVelocity = direction * moveSpeed;
         }
         else
         {
-            // Возвращаемся на исходную позицию
             direction = (startingPosition - (Vector2)transform.position).normalized;
             rb.linearVelocity = direction * moveSpeed;
 

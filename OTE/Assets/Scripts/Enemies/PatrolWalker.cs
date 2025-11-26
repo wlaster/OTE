@@ -1,6 +1,9 @@
-// PatrolWalker.cs
+
 using UnityEngine;
 
+/// <summary>
+/// Враг-патрульный: ходит по платформе, разворачиваясь у края или при столкновении со стеной.
+/// </summary>
 public class PatrolWalker : Enemy
 {
     [Header("Patrol Settings")]
@@ -12,6 +15,9 @@ public class PatrolWalker : Enemy
     private bool isTouchingWall;
     private bool isGrounded;
 
+    /// <summary>
+    /// Проверяет край платформы и стены, обновляет анимацию и разворачивает при необходимости.
+    /// </summary>
     protected override void Update()
     {
         base.Update();
@@ -26,11 +32,17 @@ public class PatrolWalker : Enemy
         }
     }
 
+    /// <summary>
+    /// Применяет скорость патруля в FixedUpdate.
+    /// </summary>
     private void FixedUpdate()
     {
         rb.linearVelocity = new Vector2(isFacingRight ? moveSpeed : -moveSpeed, rb.linearVelocity.y);
     }
 
+    /// <summary>
+    /// Рисует зоны проверки пола и стены в редакторе.
+    /// </summary>
     private void OnDrawGizmos()
     {
         Gizmos.color = Color.blue;

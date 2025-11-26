@@ -1,6 +1,9 @@
 using UnityEngine;
 
 [RequireComponent(typeof(Animator))]
+/// <summary>
+/// Управляет атаками игрока: воспроизведение анимаций атаки и нанесение урона зоне атаки.
+/// </summary>
 public class PlayerAttack : MonoBehaviour
 {
     [Header("Attack Settings")]
@@ -14,35 +17,45 @@ public class PlayerAttack : MonoBehaviour
 
     private Animator animator;
 
+    /// <summary>
+    /// Кэширует ссылку на Animator.
+    /// </summary>
     private void Awake()
     {
         animator = GetComponent<Animator>();
     }
 
-    // Этот метод вызывается из PlayerController
+    
+    /// <summary>
+    /// Запускает атаку: либо триггерит новую анимацию, либо продолжает комбо.
+    /// </summary>
     public void PerformAttack()
     {
         bool isAttacking = animator.GetCurrentAnimatorStateInfo(0).IsTag("Attack");
 
         if (isAttacking)
         {
-            // Если мы уже атакуем, то это нажатие - запрос на продолжение комбо
             animator.SetBool("continueCombo", true);
         }
         else
         {
-            // Если мы не атакуем, начинаем комбо с первого удара
             animator.SetTrigger("attack");
         }
     }
 
-    // --- МЕТОДЫ, ВЫЗЫВАЕМЫЕ ИЗ АНИМАЦИИ (Animation Events) ---
+    
+    /// <summary>
+    /// Сбрасывает флаг продолжения комбо (вызывается из анимации).
+    /// </summary>
     public void ResetContinueCombo()
     {
         animator.SetBool("continueCombo", false);
     }
     
-    // Event в КАДР УДАРА для каждой анимации.
+    
+    /// <summary>
+    /// Наносит урон всем объектам в пределах зоны атаки, реализующим `IDamageable`.
+    /// </summary>
     public void DealDamage()
     {
         Collider2D[] hitEnemies = Physics2D.OverlapCircleAll(attackPoint.position, attackRange, hittableLayers);
@@ -52,6 +65,9 @@ public class PlayerAttack : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Отрисовка Gizmo зоны атаки в редакторе для удобства настройки.
+    /// </summary>
     private void OnDrawGizmosSelected()
     {
         if (attackPoint == null) return;

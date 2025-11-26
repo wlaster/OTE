@@ -1,5 +1,8 @@
 using UnityEngine;
 
+/// <summary>
+/// Наносит урон при контакте (например, шипы или тело врага), с учётом отката по времени.
+/// </summary>
 public class TouchDamage : MonoBehaviour
 {
     [SerializeField] private float damageAmount = 10f;
@@ -11,15 +14,16 @@ public class TouchDamage : MonoBehaviour
 
     private float lastDamageTime;
 
+    /// <summary>
+    /// При нахождении объекта в триггере наносит урон, если прошёл кулдаун.
+    /// </summary>
     private void OnTriggerStay2D(Collider2D other)
     {
-        // Проверяем, что столкнулись с нужным слоем. Эта проверка более стандартная и понятная.
         if ((targetLayer.value & (1 << other.gameObject.layer)) == 0)
         {
             return;
         }
 
-        // Проверяем перезарядку
         if (Time.time < lastDamageTime + damageCooldown)
         {
             return;

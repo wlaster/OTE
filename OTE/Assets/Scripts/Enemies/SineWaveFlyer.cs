@@ -1,6 +1,9 @@
-// SineWaveFlyer.cs
+
 using UnityEngine;
 
+/// <summary>
+/// Летающий враг, движущийся по синусоидальной траектории, ориентируется на игрока.
+/// </summary>
 public class SineWaveFlyer : Enemy
 {
 
@@ -24,22 +27,28 @@ public class SineWaveFlyer : Enemy
     private float horizontalPosition;
     private float journeyTime = 0f;
 
+    /// <summary>
+    /// Инициализация: сохраняет исходную высоту и проверяет назначенную цель.
+    /// </summary>
     protected override void Awake()
     {
         base.Awake();
         rb.gravityScale = 0;
-        
+
         if (playerTransform == null)
         {
             Debug.LogError("Цель (Player) не назначена в инспекторе для " + gameObject.name, this);
             enabled = false;
             return;
         }
-        
+
         originalY = transform.position.y;
         horizontalPosition = transform.position.x;
     }
 
+    /// <summary>
+    /// Проверяет дистанцию до игрока и управляет передвижением, если цель в зоне активации.
+    /// </summary>
     protected override void Update()
     {
         base.Update();
@@ -53,18 +62,23 @@ public class SineWaveFlyer : Enemy
         }
     }
 
+    /// <summary>
+    /// Обновляет положение по синусоидальной траектории и движется по горизонтали.
+    /// </summary>
     private void HandleMovement()
     {
         journeyTime += Time.deltaTime;
 
         horizontalPosition += (isFacingRight ? 1 : -1) * moveSpeed * Time.deltaTime;
-        
-        // Вычисляем смещение по Y от ОРИГИНАЛЬНОЙ высоты
+
         float yOffset = Mathf.Sin(journeyTime * frequency) * amplitude;
-        
+
         transform.position = new Vector2(horizontalPosition, originalY + yOffset);
     }
 
+    /// <summary>
+    /// Проверяет, не удаляется ли враг слишком далеко по горизонтали от игрока и при необходимости разворачивается.
+    /// </summary>
     private void CheckForTurnaround()
     {
         float horizontalDistanceToPlayer = Mathf.Abs(transform.position.x - playerTransform.position.x);
@@ -73,7 +87,7 @@ public class SineWaveFlyer : Enemy
         {
             bool isMovingAway = (isFacingRight && transform.position.x > playerTransform.position.x) ||
                                 (!isFacingRight && transform.position.x < playerTransform.position.x);
-            
+
             if (isMovingAway)
             {
                 Flip();

@@ -1,7 +1,10 @@
 using UnityEngine;
 using UnityEngine.UI;
-using TMPro; // Обязательно для работы с TextMeshPro
+using TMPro; 
 
+/// <summary>
+/// Обновляет визуальное отображение здоровья игрока: заливку и текстовое значение.
+/// </summary>
 public class HealthBar : MonoBehaviour
 {
     [Header("References")]
@@ -10,24 +13,26 @@ public class HealthBar : MonoBehaviour
     [Tooltip("Компонент TextMeshPro для отображения числового значения здоровья.")]
     [SerializeField] private TextMeshProUGUI hpText;
 
+    
+    
+    
+    
+    
     /// <summary>
-    /// Публичный метод для обновления полоски здоровья.
+    /// Обновляет полоску и текст здоровья в соответствии с текущим и максимальным значением.
     /// </summary>
-    /// <param name="currentHealth">Текущее количество здоровья.</param>
-    /// <param name="maxHealth">Максимальное количество здоровья.</param>
     public void UpdateHealth(float currentHealth, float maxHealth)
     {
         if (healthBarFill != null)
         {
-            // Рассчитываем долю здоровья (значение от 0 до 1)
             float fillAmount = currentHealth / maxHealth;
             healthBarFill.fillAmount = fillAmount;
         }
 
         if (hpText != null)
         {
-            // Обновляем текст, округляя значения до целых чисел
             hpText.text = $"{Mathf.CeilToInt(currentHealth)} / {Mathf.CeilToInt(maxHealth)}";
         }
     }
+    
 }

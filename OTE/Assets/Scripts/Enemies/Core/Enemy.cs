@@ -1,7 +1,10 @@
-// Enemy.cs
+
 using UnityEngine;
 
 [RequireComponent(typeof(Rigidbody2D), typeof(EnemyHealth))]
+/// <summary>
+/// Базовый абстрактный класс для врагов: содержит общую логику движения и ориентации.
+/// </summary>
 public abstract class Enemy : MonoBehaviour
 {
     [Header("Base Enemy Settings")]
@@ -11,17 +14,25 @@ public abstract class Enemy : MonoBehaviour
     protected Animator animator;
     protected bool isFacingRight = true;
 
+    /// <summary>
+    /// Инициализация общих компонентов врага (Rigidbody2D, Animator).
+    /// </summary>
     protected virtual void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
         animator = GetComponent<Animator>();
     }
 
+    /// <summary>
+    /// Виртуальное обновление для дочерних классов (поддержка поведения врага).
+    /// </summary>
     protected virtual void Update()
     {
-        
     }
 
+    /// <summary>
+    /// Поворачивает врага на 180 градусов (инвертирует направление взгляда).
+    /// </summary>
     protected void Flip()
     {
         isFacingRight = !isFacingRight;

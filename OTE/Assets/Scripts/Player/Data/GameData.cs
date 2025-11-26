@@ -1,21 +1,29 @@
-// GameData.cs
+
 using UnityEngine;
 
-[System.Serializable] // Этот атрибут обязателен, чтобы Unity мог сериализовать класс в JSON
+[System.Serializable] 
+/// <summary>
+/// DTO для сериализации данных игры: здоровье, позиция игрока и имя сцены.
+/// </summary>
 public class GameData
 {
-    // --- ДАННЫЕ ИГРОКА ---
+    
+    /// <summary>Текущее здоровье игрока.</summary>
     public float playerHealth;
+    /// <summary>Позиция игрока в сцене.</summary>
     public Vector3 playerPosition;
 
-    // --- ДАННЫЕ О МИРЕ ---
+    /// <summary>Имя сцены, в которой было сохранение.</summary>
     public string sceneName;
 
-    // Конструктор для создания "пустых" данных по умолчанию
+    
+    /// <summary>
+    /// Конструктор по умолчанию с базовыми значениями.
+    /// </summary>
     public GameData()
     {
-        this.playerHealth = 100f; // Начальное здоровье
-        this.playerPosition = Vector3.zero; // Начальная позиция
-        this.sceneName = "Level1_Prototype"; // Начальная сцена
+        this.playerHealth = 100f; 
+        this.playerPosition = Vector3.zero; 
+        this.sceneName = "Level1_Prototype"; 
     }
 }

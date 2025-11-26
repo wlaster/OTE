@@ -1,6 +1,9 @@
-// EnemyMeleeAttack.cs 
+
 using UnityEngine;
 
+/// <summary>
+/// Компонент ближней атаки врага: триггерит анимацию и наносит урон в зоне удара.
+/// </summary>
 public class EnemyMeleeAttack : MonoBehaviour
 {
     [Header("Attack Settings")]
@@ -16,6 +19,9 @@ public class EnemyMeleeAttack : MonoBehaviour
 
     private Animator animator;
 
+    /// <summary>
+    /// Кэширует `Animator` и проверяет, назначена ли точка атаки.
+    /// </summary>
     private void Awake()
     {
         animator = GetComponent<Animator>();
@@ -25,7 +31,10 @@ public class EnemyMeleeAttack : MonoBehaviour
         }
     }
 
-    // Этот метод по-прежнему вызывается из ИИ (GuardianAI)
+    
+    /// <summary>
+    /// Инициирует атаку если сейчас не воспроизводится анимация атаки.
+    /// </summary>
     public void PerformAttack()
     {
         bool isAlreadyAttacking = animator.GetCurrentAnimatorStateInfo(0).IsTag("Attack");
@@ -35,18 +44,18 @@ public class EnemyMeleeAttack : MonoBehaviour
         }
     }
 
-    /// Наносит урон всем целям в зоне атаки. Вызывается из Animation Event в нужный кадр.
+    
+    /// <summary>
+    /// Наносит урон всем целям в радиусе `attackRange` от `attackPoint`.
+    /// </summary>
     public void DealDamage()
     {
         if (attackPoint == null) return;
 
-        // 1. Создаем зону атаки в указанной точке НА ОДИН КАДР
         Collider2D[] hitTargets = Physics2D.OverlapCircleAll(attackPoint.position, attackRange, hittableLayers);
 
-        // 2. Проходим по всем, кого нашли
         foreach (Collider2D targetCollider in hitTargets)
         {
-            // 3. Наносим урон
             if (targetCollider.TryGetComponent<IDamageable>(out var damageableObject))
             {
                 damageableObject.TakeDamage(attackDamage, transform.position);
@@ -54,6 +63,9 @@ public class EnemyMeleeAttack : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Отрисовка гизмо зоны атаки в редакторе.
+    /// </summary>
     private void OnDrawGizmosSelected()
     {
         if (attackPoint == null) return;

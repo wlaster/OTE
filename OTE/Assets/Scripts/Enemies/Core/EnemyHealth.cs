@@ -2,6 +2,9 @@ using UnityEngine;
 using UnityEngine.Events;
 
 [RequireComponent(typeof(Collider2D))]
+/// <summary>
+/// Управляет здоровьем врага, эффектами при попадании и поведением при смерти.
+/// </summary>
 public class EnemyHealth : MonoBehaviour, IDamageable
 {
     [Header("Health Settings")]
@@ -14,7 +17,7 @@ public class EnemyHealth : MonoBehaviour, IDamageable
     [Tooltip("Длительность эффекта мигания в секундах.")]
     [SerializeField] private float hurtFlashDuration = 0.15f;
 
-    // --- СОБЫТИЯ (EVENTS) ---
+    
     [Space]
     [Header("Events")]
     [Tooltip("Срабатывает в момент получения урона.")]
@@ -22,17 +25,20 @@ public class EnemyHealth : MonoBehaviour, IDamageable
     [Tooltip("Срабатывает в момент смерти.")]
     public UnityEvent OnDeath;
 
-    // --- ПРИВАТНЫЕ ПЕРЕМЕННЫЕ ---
+    
     private float currentHealth;
     private bool isDead = false;
 
-    // Ссылки на другие компоненты для управления
+    
     private SpriteRenderer spriteRenderer;
     private Color originalColor;
     private Collider2D mainCollider;
     private Enemy baseEnemyScript;
     private Animator animator;
 
+    /// <summary>
+    /// Инициализация: кэширует компоненты и задаёт стартовое здоровье.
+    /// </summary>
     private void Awake()
     {
         animator = GetComponent<Animator>();
@@ -42,44 +48,44 @@ public class EnemyHealth : MonoBehaviour, IDamageable
         mainCollider = GetComponent<Collider2D>();
         baseEnemyScript = GetComponent<Enemy>();
 
-        // Сохраняем оригинальный цвет спрайта
         if (spriteRenderer != null)
         {
             originalColor = spriteRenderer.color;
         }
     }
 
-    // Главный публичный метод, который будут вызывать другие объекты (например, хитбокс игрока)
+    
+    /// <summary>
+    /// Получает урон и запускает эффект попадания; вызывает смерть при достижении 0 HP.
+    /// </summary>
     public void TakeDamage(float damageAmount, Vector2 knockbackSourcePosition)
     {
-        // "Guard Clause" - Защитное условие. Нельзя нанести урон, если враг уже мертв.
         if (isDead)
         {
             return;
         }
 
-        // Уменьшаем здоровье
         currentHealth -= damageAmount;
         Debug.Log($"[EnemyDamage] {gameObject.name} получил {damageAmount} урона. ");
 
         OnHit?.Invoke();
 
-        // Запускаем визуальный эффект "мигания"
         StartCoroutine(HurtFlashCoroutine());
         animator.SetTrigger("hurt");
 
-        // Проверяем, не достигло ли здоровье нуля
         if (currentHealth <= 0)
         {
             Die();
         }
     }
 
+    /// <summary>
+    /// Обрабатывает смерть врага: отключает поведение, запускает анимацию и уничтожает объект.
+    /// </summary>
     private void Die()
     {
         isDead = true;
 
-        // Отключаем ИИ, чтобы враг перестал двигаться и атаковать
         if (baseEnemyScript != null)
         {
             baseEnemyScript.enabled = false;
@@ -104,17 +110,15 @@ public class EnemyHealth : MonoBehaviour, IDamageable
             rb.bodyType = RigidbodyType2D.Kinematic;
         }
 
-        // if (TryGetComponent<Animator>(out var animator))
-        // {
-        //     animator.SetTrigger("death");
-        // }
-
         OnDeath?.Invoke();
 
         Destroy(gameObject, 2f);
     }
 
-    // Корутина, отвечающая за эффект мигания
+    
+    /// <summary>
+    /// Короткая корутина мигания спрайта при попадании.
+    /// </summary>
     private System.Collections.IEnumerator HurtFlashCoroutine()
     {
         if (spriteRenderer != null)
