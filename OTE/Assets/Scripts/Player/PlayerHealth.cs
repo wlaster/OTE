@@ -1,16 +1,22 @@
 using UnityEngine;
 using System.Collections;
 using UnityEngine.SceneManagement;
-using UnityEngine.Events; // Убедитесь, что эта строка есть
+using UnityEngine.Events; 
 
 
 [System.Serializable]
+/// <summary>
+/// Событие изменения здоровья: передает (текущееHealth, maxHealth).
+/// </summary>
 public class HealthChangedEvent : UnityEvent<float, float> { }
 
 [RequireComponent(typeof(Rigidbody2D))]
 [RequireComponent(typeof(Animator))]
 [RequireComponent(typeof(PlayerController))]
 [RequireComponent(typeof(PlayerMovement))]
+/// <summary>
+/// Отвечает за здоровье игрока: получение урона, инвулнериальность, отбрасывание и смерть.
+/// </summary>
 public class PlayerHealth : MonoBehaviour, IDamageable
 {
     [Header("Health Settings")]
@@ -37,7 +43,7 @@ public class PlayerHealth : MonoBehaviour, IDamageable
     [Tooltip("Событие, которое вызывается при изменении здоровья. Передает (currentHealth, maxHealth).")]
     public HealthChangedEvent OnHealthChanged;
 
-    // Ссылки на компоненты
+    
     private Animator animator;
     private Rigidbody2D rb;
     private PlayerController playerController;
@@ -45,15 +51,17 @@ public class PlayerHealth : MonoBehaviour, IDamageable
     private SpriteRenderer spriteRenderer;
     private CapsuleCollider2D capsuleCollider;
 
-    // Состояние
+    
     private float currentHealth;
     private bool isDead = false;
     private bool isInvincible = false;
     private Color originalColor;
 
+    /// <summary>
+    /// Инициализирует ссылки на компоненты и задает начальное значение здоровья.
+    /// </summary>
     private void Awake()
     {
-        // Безопасное получение компонентов с помощью TryGetComponent
         if (!TryGetComponent(out animator)) Debug.LogError("Animator не найден на " + gameObject.name);
         if (!TryGetComponent(out rb)) Debug.LogError("Rigidbody2D не найден на " + gameObject.name);
         if (!TryGetComponent(out playerController)) Debug.LogError("PlayerController не найден на " + gameObject.name);
@@ -61,21 +69,26 @@ public class PlayerHealth : MonoBehaviour, IDamageable
         if (!TryGetComponent(out spriteRenderer)) Debug.LogError("SpriteRenderer не найден на " + gameObject.name);
         if (!TryGetComponent(out capsuleCollider)) Debug.LogError("CapsuleCollider2D не найден на " + gameObject.name);
 
-        // Сохраняем начальные значения
         if (spriteRenderer != null)
         {
             originalColor = spriteRenderer.color;
         }
         currentHealth = maxHealth;
-
     }
 
+    /// <summary>
+    /// Вызывает событие изменения здоровья при старте (для инициализации UI и слушателей).
+    /// </summary>
     private void Start()
     {
-        // При старте игры один раз сообщаем UI актуальное здоровье, чтобы он правильно отобразился
         OnHealthChanged?.Invoke(currentHealth, maxHealth);
     }
 
+    /// <summary>
+    /// Получает урон, запускает эффект урона и проверяет на смерть.
+    /// </summary>
+    /// <param name="damageAmount">Количество урона.</param>
+    /// <param name="knockbackSourcePosition">Позиция источника для расчета отбрасывания.</param>
     public void TakeDamage(float damageAmount, Vector2 knockbackSourcePosition)
     {
         if (isDead || isInvincible)
@@ -89,25 +102,24 @@ public class PlayerHealth : MonoBehaviour, IDamageable
 
         OnHealthChanged?.Invoke(currentHealth, maxHealth);
 
-        // Запускаем корутину, передавая в нее позицию источника урона
         StartCoroutine(HurtSequence(knockbackSourcePosition));
 
         if (currentHealth <= 0)
         {
-            // Передаем позицию источника и в метод смерти для финального отскока
             Die(knockbackSourcePosition);
         }
     }
 
+    /// <summary>
+    /// Последовательность эффектов после получения урона: инвик и отбрасывание, миг цветом.
+    /// </summary>
     private IEnumerator HurtSequence(Vector2 sourcePosition)
     {
         isInvincible = true;
 
-        // 1. Применяем отскок
         playerMovement.enabled = false;
         ApplyKnockback(sourcePosition, knockbackForce);
 
-        // 2. Визуальная обратная связь
         if (spriteRenderer != null)
         {
             spriteRenderer.color = hurtColor;
@@ -115,8 +127,6 @@ public class PlayerHealth : MonoBehaviour, IDamageable
             spriteRenderer.color = originalColor;
         }
 
-        // 3. Оставшееся время неуязвимости
-        // Убедимся, что не будет отрицательного ожидания
         float remainingInvincibility = invincibilityDuration - hurtFlashDuration;
         if (remainingInvincibility > 0)
         {
@@ -126,6 +136,9 @@ public class PlayerHealth : MonoBehaviour, IDamageable
         playerMovement.enabled = true;
     }
 
+    /// <summary>
+    /// Обрабатывает смерть игрока: отключает контролы, применяет отбрасывание и запускает рестарт уровня.
+    /// </summary>
     private void Die(Vector2 sourcePosition)
     {
         isDead = true;
@@ -135,7 +148,7 @@ public class PlayerHealth : MonoBehaviour, IDamageable
         playerMovement.enabled = false;
 
         gameObject.tag = "Untagged";
-        gameObject.layer = 0; // Слой Default
+        gameObject.layer = 0; 
 
         if (capsuleCollider != null)
         {
@@ -144,7 +157,6 @@ public class PlayerHealth : MonoBehaviour, IDamageable
             capsuleCollider.size = deathColliderSize;
         }
 
-        // Применяем финальный, более сильный отскок
         ApplyKnockback(sourcePosition, deathKnockbackForce);
 
         if (animator != null)
@@ -156,35 +168,35 @@ public class PlayerHealth : MonoBehaviour, IDamageable
         StartCoroutine(RestartLevel());
     }
 
-    /// Вычисляет направление и применяет силу отскока к Rigidbody.
+    
+    /// <summary>
+    /// Применяет отбрасывающую силу от заданного источника с учётом угла.
+    /// </summary>
+    /// <param name="sourcePosition">Позиция источника урона.</param>
+    /// <param name="force">Сила отбрасывания.</param>
     private void ApplyKnockback(Vector2 sourcePosition, float force)
     {
-        // 1. Определяем направление ОТ источника К игроку
         Vector2 directionFromSource = ((Vector2)transform.position - sourcePosition).normalized;
 
-        // Если источник урона находится прямо там же, где и игрок (например, урон по таймеру),
-        // отталкиваем просто назад, чтобы избежать деления на ноль.
         if (directionFromSource == Vector2.zero)
         {
             directionFromSource = new Vector2(-transform.localScale.x, 0).normalized;
         }
 
-        // 2. Определяем горизонтальное направление (1 или -1)
         float directionX = Mathf.Sign(directionFromSource.x);
 
-        // 3. Конвертируем угол из градусов в радианы для тригонометрии
         float angleInRadians = knockbackAngle * Mathf.Deg2Rad;
 
-        // 4. Вычисляем вектор отскока с заданным углом
-        // Мы используем тангенс, чтобы получить нужную высоту (Y) относительно горизонтали (X)
         Vector2 knockbackVector = new Vector2(directionX, Mathf.Tan(angleInRadians)).normalized;
 
-        // 5. Применяем силу
-        rb.linearVelocity = Vector2.zero; // Обнуляем скорость для чистого импульса
+        rb.linearVelocity = Vector2.zero; 
         rb.AddForce(knockbackVector * force, ForceMode2D.Impulse);
     }
 
-    /// Корутина для визуального эффекта мигания.
+    
+    /// <summary>
+    /// Вспышка цвета при ранении (используется при необходимости).
+    /// </summary>
     private IEnumerator FlashEffect()
     {
         if (spriteRenderer == null) yield break;
@@ -194,23 +206,35 @@ public class PlayerHealth : MonoBehaviour, IDamageable
         spriteRenderer.color = originalColor;
     }
 
+    /// <summary>
+    /// Останавливает анимацию через небольшую задержку после смерти для эффекта 'заморозки'.
+    /// </summary>
     private IEnumerator FreezeAnimationOnDeath()
     {
         yield return new WaitForSeconds(1f);
         animator.speed = 0;
     }
 
+    /// <summary>
+    /// Перезапускает уровень через заданную задержку после смерти.
+    /// </summary>
     private IEnumerator RestartLevel()
     {
         yield return new WaitForSeconds(9f);
         SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
     
+    /// <summary>
+    /// Возвращает текущее здоровье игрока.
+    /// </summary>
     public float GetCurrentHealth()
     {
-    return currentHealth;
+        return currentHealth;
     }
 
+    /// <summary>
+    /// Устанавливает текущее здоровье (с ограничением) и оповещает слушателей.
+    /// </summary>
     public void SetCurrentHealth(float health)
     {
         currentHealth = Mathf.Clamp(health, 0, maxHealth);

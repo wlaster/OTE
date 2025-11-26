@@ -1,17 +1,23 @@
-// GameManager.cs
+
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
+/// <summary>
+/// Менеджер игры (singleton): обеспечивает сохранение/загрузку и передачу данных между сценами.
+/// </summary>
 public class GameManager : MonoBehaviour
 {
     public static GameManager Instance { get; private set; }
     
-    // Ссылка на объект игрока
+    
     private PlayerHealth playerHealth;
     
-    // Переменная для хранения данных при переходе между сценами
+    
     public static GameData dataToLoad = null;
 
+    /// <summary>
+    /// Реализация singleton: сохраняет экземпляр и уничтожает дубликаты.
+    /// </summary>
     private void Awake()
     {
         if (Instance != null && Instance != this)
@@ -20,59 +26,64 @@ public class GameManager : MonoBehaviour
             return;
         }
         Instance = this;
-        // DontDestroyOnLoad(gameObject); // Раскомментируйте, если у вас будет много сцен и вы хотите, чтобы GameManager был один на всю игру
     }
 
     [System.Obsolete]
+    /// <summary>
+    /// На старте ищет игрока и применяет данные, если они были загружены перед сменой сцены.
+    /// </summary>
     private void Start()
     {
-        // Находим игрока на сцене
         playerHealth = FindObjectOfType<PlayerHealth>();
-        
-        // Если у нас есть данные для загрузки, применяем их
+
         if (dataToLoad != null)
         {
             LoadData(dataToLoad);
-            dataToLoad = null; // Очищаем, чтобы не загружать снова при перезапуске сцены
+            dataToLoad = null; 
         }
     }
 
+    
+    
+    
     /// <summary>
-    /// Собирает все данные и сохраняет игру.
+    /// Собирает текущие данные игрока и сохраняет их через `SaveSystem`.
     /// </summary>
     public void SaveGame()
     {
         GameData data = new GameData();
-        
-        // Собираем данные
-        data.playerHealth = playerHealth.GetCurrentHealth(); // Нужно будет добавить этот метод в PlayerHealth
+
+        data.playerHealth = playerHealth.GetCurrentHealth(); 
         data.playerPosition = playerHealth.transform.position;
         data.sceneName = SceneManager.GetActiveScene().name;
-        
-        // Передаем в систему сохранения
+
         SaveSystem.SaveGame(data);
     }
 
+    
+    
+    
     /// <summary>
-    /// Загружает данные из файла и готовит их к применению.
+    /// Загружает данные сохранения и переключается на сцену из сохранения.
     /// </summary>
     public void LoadGame()
     {
         dataToLoad = SaveSystem.LoadGame();
-        
-        // Загружаем нужную сцену. После загрузки Start() применит данные.
         SceneManager.LoadScene(dataToLoad.sceneName);
     }
     
+    
+    
+    
     /// <summary>
-    /// Применяет загруженные данные к объектам на сцене.
+    /// Применяет поля `GameData` к текущим объектам в сцене (позиция и здоровье игрока).
     /// </summary>
     private void LoadData(GameData data)
     {
         if (playerHealth != null)
         {
             playerHealth.transform.position = data.playerPosition;
-            playerHealth.SetCurrentHealth(data.playerHealth); // Нужно будет добавить этот метод
+            playerHealth.SetCurrentHealth(data.playerHealth); 
         }
     }
 }

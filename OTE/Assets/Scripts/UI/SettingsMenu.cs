@@ -1,6 +1,9 @@
 using UnityEngine;
 using UnityEngine.UI;
 
+/// <summary>
+/// Управляет UI настроек: синхронизация переключателей с `SettingsData` и применение настроек.
+/// </summary>
 public class SettingsMenu : MonoBehaviour
 {
     [Header("UI References")]
@@ -8,6 +11,9 @@ public class SettingsMenu : MonoBehaviour
 
     private SettingsData currentSettings;
 
+    /// <summary>
+    /// Загружает настройки и обновляет UI при старте сцены.
+    /// </summary>
     private void Start()
     {
         currentSettings = SettingsIO.LoadSettings();
@@ -17,19 +23,25 @@ public class SettingsMenu : MonoBehaviour
         ApplyGameSettings(currentSettings);
     }
 
+    /// <summary>
+    /// Обновляет элементы UI в соответствии с текущими настройками и привязывает обработчики.
+    /// </summary>
     private void UpdateUI()
     {
         if (fullscreenToggle != null)
         {
             fullscreenToggle.onValueChanged.RemoveAllListeners();
-            
+
             fullscreenToggle.isOn = currentSettings.isFullscreen;
-            
+
             fullscreenToggle.onValueChanged.AddListener(SetFullscreen);
         }
     }
 
 
+    /// <summary>
+    /// Устанавливает полноэкранный режим, сохраняет настройки и применяет их.
+    /// </summary>
     public void SetFullscreen(bool isFullscreen)
     {
         currentSettings.isFullscreen = isFullscreen;
@@ -39,6 +51,9 @@ public class SettingsMenu : MonoBehaviour
         ApplyGameSettings(currentSettings);
     }
     
+    /// <summary>
+    /// Применяет переданные настройки (в основном — режим экрана).
+    /// </summary>
     public static void ApplyGameSettings(SettingsData data)
     {
         if (data.isFullscreen)
@@ -50,8 +65,5 @@ public class SettingsMenu : MonoBehaviour
         {
             Screen.SetResolution(1280, 720, FullScreenMode.Windowed);
         }
-
-        // --- ЗВУК (Заготовка на будущее) ---
-        // AudioListener.volume = data.volume;
     }
 }

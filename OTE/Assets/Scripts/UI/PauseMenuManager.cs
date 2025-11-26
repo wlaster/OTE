@@ -1,6 +1,9 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
+/// <summary>
+/// Управляет паузой игры: показывать/скрывать меню паузы, настройки и сохранение прогресса.
+/// </summary>
 public class PauseMenuManager : MonoBehaviour
 {
     [Header("References")]
@@ -18,6 +21,9 @@ public class PauseMenuManager : MonoBehaviour
 
     public static bool IsGamePaused { get; private set; }
 
+    /// <summary>
+    /// Инициализация состояния паузы на старте (убирает панели и восстанавливает время).
+    /// </summary>
     private void Start()
     {
         if (pauseMenuPanel != null) pauseMenuPanel.SetActive(false);
@@ -28,9 +34,11 @@ public class PauseMenuManager : MonoBehaviour
         Time.timeScale = 1f;
     }
 
+    /// <summary>
+    /// Отслеживает нажатие `Escape` для переключения паузы.
+    /// </summary>
     private void Update()
     {
-        // Отслеживаем нажатие клавиши Escape
         if (Input.GetKeyDown(KeyCode.Escape))
         {
             if (IsGamePaused)
@@ -44,46 +52,54 @@ public class PauseMenuManager : MonoBehaviour
         }
     }
 
+    
+    
+    
     /// <summary>
-    /// Ставит игру на паузу.
+    /// Включает режим паузы: показывает панель паузы, скрывает интерфейс и останавливает время.
     /// </summary>
     public void PauseGame()
     {
         if (pauseMenuPanel != null) pauseMenuPanel.SetActive(true);
-        
-        // Скрываем интерфейс игры
+
         if (gameInterface != null) gameInterface.SetActive(false);
-        
+
         Time.timeScale = 0f;
         IsGamePaused = true;
     }
 
+    
+    
+    
     /// <summary>
-    /// Снимает игру с паузы.
+    /// Выключает паузу: скрывает панель паузы, восстанавливает интерфейс и время.
     /// </summary>
     public void ResumeGame()
     {
         if (pauseMenuPanel != null) pauseMenuPanel.SetActive(false);
-        
-        // Возвращаем интерфейс игры
+
         if (gameInterface != null) gameInterface.SetActive(true);
-        
+
         Time.timeScale = 1f;
         IsGamePaused = false;
     }
 
+    
+    
+    
     /// <summary>
-    /// Сохраняет игру (пока что заглушка).
+    /// Запрашивает у `GameManager` сохранение текущего состояния игры.
     /// </summary>
     public void SaveGame()
     {
-        // Находим GameManager на сцене и вызываем его метод сохранения
         GameManager.Instance?.SaveGame(); 
-        // Знак '?' - это защита на случай, если GameManager не найден
     }
 
+    
+    
+    
     /// <summary>
-    /// Открывает меню настроек.
+    /// Открывает панель настроек из меню паузы.
     /// </summary>
     public void OpenSettings()
     {
@@ -92,18 +108,21 @@ public class PauseMenuManager : MonoBehaviour
         if (settingsMenuPanel != null) settingsMenuPanel.SetActive(true);
     }
 
+    /// <summary>
+    /// Закрывает настройки и возвращает меню паузы.
+    /// </summary>
     public void CloseSettings()
     {
         if (settingsMenuPanel != null) settingsMenuPanel.SetActive(false);
-        
+
         if (pauseMenuPanel != null) pauseMenuPanel.SetActive(true);
     }
     
+    /// <summary>
+    /// Возвращает в главное меню: отменяет паузу и загружает сцену главного меню.
+    /// </summary>
     public void LoadMainMenu()
     {
-        // ВАЖНО: Перед выходом из игровой сцены нужно обязательно вернуть Time.timeScale к 1.
-        // Иначе, если вы выйдете на паузе (timeScale = 0), вся игра "замрет" навсегда,
-        // включая анимации в главном меню.
         Time.timeScale = 1f;
         IsGamePaused = false;
 
@@ -111,8 +130,11 @@ public class PauseMenuManager : MonoBehaviour
         SceneManager.LoadScene(mainMenuSceneName);
     }
 
+    
+    
+    
     /// <summary>
-    /// Полностью закрывает приложение.
+    /// Выходит из приложения (работает в билде).
     /// </summary>
     public void QuitGame()
     {

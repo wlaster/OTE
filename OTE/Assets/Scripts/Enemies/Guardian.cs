@@ -1,6 +1,9 @@
 using UnityEngine;
 
 [RequireComponent(typeof(EnemyVision))]
+/// <summary>
+/// Ближний боец-страж: преследует игрока и использует ближнюю атаку на дистанции.
+/// </summary>
 public class Guardian : Enemy
 {
     [Header("Guardian AI Settings")]
@@ -10,6 +13,9 @@ public class Guardian : Enemy
     private EnemyVision enemyVision;
     private EnemyMeleeAttack meleeAttack;
 
+    /// <summary>
+    /// Инициализация: получает ссылки на зрение и компонент ближней атаки.
+    /// </summary>
     protected override void Awake()
     {
         base.Awake();
@@ -22,13 +28,19 @@ public class Guardian : Enemy
         }
     }
 
+    /// <summary>
+    /// Выполняет выбор поведения каждое обновление (преследование/атака/простой).
+    /// </summary>
     protected override void Update()
     {
         base.Update();
         HandleAIState();
     }
 
-    /// Основная логика принятия решений.
+    
+    /// <summary>
+    /// Логика ИИ: если видит игрока — поворачивается к нему и выбирает между атакой и преследованием.
+    /// </summary>
     private void HandleAIState()
     {
         if (!enemyVision.CanSeePlayer)
@@ -53,27 +65,39 @@ public class Guardian : Enemy
         }
     }
 
-    /// Состояние покоя: враг останавливается.
+    
+    /// <summary>
+    /// Переходит в состояние простоя.
+    /// </summary>
     private void Idle()
     {
         StopMoving();
     }
 
-    /// Состояние преследования: враг движется к игроку.
+    
+    /// <summary>
+    /// Преследует игрока, двигаясь в его направлении.
+    /// </summary>
     private void Chase()
     {
         rb.linearVelocity = new Vector2(isFacingRight ? moveSpeed : -moveSpeed, rb.linearVelocity.y);
         animator.SetBool("isWalking", true);
     }
 
-    /// Состояние атаки: враг останавливается и атакует.
+    
+    /// <summary>
+    /// Останавливается и вызывает выполнение ближней атаки.
+    /// </summary>
     private void Attack()
     {
         StopMoving();
         meleeAttack.PerformAttack();
     }
 
-    /// Поворачивает врага лицом к игроку.
+    
+    /// <summary>
+    /// Поворачивает стража в сторону игрока.
+    /// </summary>
     private void FacePlayer(Transform player)
     {
         if ((player.position.x > transform.position.x && !isFacingRight) || 
@@ -83,13 +107,19 @@ public class Guardian : Enemy
         }
     }
 
-    /// Останавливает горизонтальное движение.
+    
+    /// <summary>
+    /// Останавливает движение и отключает анимацию ходьбы.
+    /// </summary>
     private void StopMoving()
     {
         rb.linearVelocity = new Vector2(0, rb.linearVelocity.y);
         animator.SetBool("isWalking", false);
     }
 
+    /// <summary>
+    /// Рисует гизмо диапазона атаки в редакторе.
+    /// </summary>
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.red;

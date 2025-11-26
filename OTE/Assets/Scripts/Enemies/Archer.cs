@@ -1,8 +1,11 @@
 using UnityEngine;
 
-/// Искусственный интеллект для врага-лучника.
-/// Использует EnemyVision для обнаружения цели и принимает решения на основе этого.
+
+
 [RequireComponent(typeof(EnemyVision))]
+/// <summary>
+/// Лучник: держит дистанцию, отступает при близкой угрозе и стреляет из шаблона стрел.
+/// </summary>
 public class Archer : Enemy
 {
     [Header("AI Behavior")]
@@ -19,12 +22,15 @@ public class Archer : Enemy
     [Tooltip("Точка, из которой вылетает стрела.")]
     [SerializeField] private Transform firePoint;
     
-    // Ссылки
+    
     private EnemyVision enemyVision;
     
-    // Состояние
+    
     private float nextFireTime = 0f;
 
+    /// <summary>
+    /// Инициализация: вызывает базовый Awake и получает ссылку на `EnemyVision`.
+    /// </summary>
     protected override void Awake()
     {
         base.Awake();
@@ -36,12 +42,18 @@ public class Archer : Enemy
         }
     }
 
+    /// <summary>
+    /// Обновление состояния ИИ каждый кадр: выполняет выбор поведения.
+    /// </summary>
     protected override void Update()
     {
         base.Update();
         HandleAIState();
     }
 
+    /// <summary>
+    /// Выбирает поведение лучника в зависимости от расстояния до игрока и видимости.
+    /// </summary>
     private void HandleAIState()
     {
         if (!enemyVision.CanSeePlayer || enemyVision.Player == null)
@@ -69,12 +81,18 @@ public class Archer : Enemy
         }
     }
 
+    /// <summary>
+    /// Ожидание: останавливается и переключает анимацию.
+    /// </summary>
     private void PerformIdle()
     {
         rb.linearVelocity = new Vector2(0, rb.linearVelocity.y);
         animator.SetBool("isWalking", false);
     }
 
+    /// <summary>
+    /// Преследование игрока: движется в его направлении.
+    /// </summary>
     private void PerformChase(Transform player)
     {
         float direction = Mathf.Sign(player.position.x - transform.position.x);
@@ -82,6 +100,9 @@ public class Archer : Enemy
         animator.SetBool("isWalking", true);
     }
 
+    /// <summary>
+    /// Отступление: отдаляется от игрока.
+    /// </summary>
     private void PerformRetreat(Transform player)
     {
         float direction = -Mathf.Sign(player.position.x - transform.position.x);
@@ -89,6 +110,9 @@ public class Archer : Enemy
         animator.SetBool("isWalking", true);
     }
 
+    /// <summary>
+    /// Подготовка к атаке: останавливается и пытается стрелять.
+    /// </summary>
     private void PerformAttack()
     {
         rb.linearVelocity = new Vector2(0, rb.linearVelocity.y);
@@ -96,6 +120,9 @@ public class Archer : Enemy
         TryToShoot();
     }
 
+    /// <summary>
+    /// Поворачивает врага так, чтобы он смотрел на игрока.
+    /// </summary>
     private void FacePlayer(Transform player)
     {
         bool shouldFlip = (player.position.x > transform.position.x && !isFacingRight) || 
@@ -106,6 +133,9 @@ public class Archer : Enemy
         }
     }
 
+    /// <summary>
+    /// Проверяет кулдаун и инициирует анимацию выстрела, если можно стрелять.
+    /// </summary>
     private void TryToShoot()
     {
         if (Time.time > nextFireTime)
@@ -115,7 +145,10 @@ public class Archer : Enemy
         }
     }
 
-    // Этот метод вызывается из Animation Event
+    
+    /// <summary>
+    /// Создаёт объект стрелы и инициализирует её целью (игроком).
+    /// </summary>
     public void FireArrow()
     {
         if (arrowPrefab != null && firePoint != null && enemyVision.Player != null)
@@ -129,6 +162,9 @@ public class Archer : Enemy
         }
     }
     
+    /// <summary>
+    /// Визуализация зон стрельбы и отступления в редакторе.
+    /// </summary>
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.green;

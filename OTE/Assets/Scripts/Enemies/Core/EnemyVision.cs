@@ -2,6 +2,9 @@ using UnityEngine;
 using UnityEngine.Events;
 using System.Collections;
 
+/// <summary>
+/// Отвечает за обнаружение игрока врагом: проверяет видимость и бросает события при обнаружении/потере.
+/// </summary>
 public class EnemyVision : MonoBehaviour
 {
     [Header("Vision Settings")]
@@ -16,25 +19,31 @@ public class EnemyVision : MonoBehaviour
     [Tooltip("Слои, которые блокируют зрение (стены, земля).")]
     [SerializeField] private LayerMask obstacleLayer;
 
-    // --- ПУБЛИЧНЫЕ СВОЙСТВА ---
+    
     public bool CanSeePlayer { get; private set; }
     public Transform Player { get; private set; }
 
-    // --- СОБЫТИЯ ---
+    
     [Space]
     [Header("Events")]
     public UnityEvent OnPlayerDetected;
     public UnityEvent OnPlayerLost;
     
-    // --- Приватные переменные ---
+    
     private Coroutine _detectionCoroutine;
     private float _timeSincePlayerSeen;
 
+    /// <summary>
+    /// Запускает корутину периодической проверки зрения.
+    /// </summary>
     private void Start()
     {
         _detectionCoroutine = StartCoroutine(DetectionRoutine());
     }
 
+    /// <summary>
+    /// Останавливает корутину при отключении компонента.
+    /// </summary>
     private void OnDisable()
     {
         if (_detectionCoroutine != null)
@@ -43,6 +52,9 @@ public class EnemyVision : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Периодически вызывает проверку видимости игрока через заданный интервал.
+    /// </summary>
     private IEnumerator DetectionRoutine()
     {
         WaitForSeconds wait = new WaitForSeconds(detectionInterval);
@@ -53,13 +65,15 @@ public class EnemyVision : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Обрабатывает результат проверки видимости: учитывает таймер потери цели и вызывает события.
+    /// </summary>
     private void HandleDetection()
     {
         bool isPlayerVisible = IsPlayerInLineOfSight();
 
         if (CanSeePlayer && !isPlayerVisible)
         {
-            // Игрок был виден, но теперь пропал из виду. Начинаем отсчет времени.
             _timeSincePlayerSeen += detectionInterval;
             if (_timeSincePlayerSeen >= loseSightTime)
             {
@@ -68,11 +82,13 @@ public class EnemyVision : MonoBehaviour
         }
         else if (isPlayerVisible)
         {
-            // Игрок в поле зрения.
             DetectPlayer();
         }
     }
 
+    /// <summary>
+    /// Проверяет, находится ли игрок в зоне обнаружения и не закрыт ли он препятствием.
+    /// </summary>
     private bool IsPlayerInLineOfSight()
     {
         Collider2D playerInDetectionZone = Physics2D.OverlapCircle(transform.position, detectionRange, playerLayer);
@@ -85,13 +101,15 @@ public class EnemyVision : MonoBehaviour
         Player = playerInDetectionZone.transform;
         Vector2 directionToPlayer = (Player.position - transform.position).normalized;
         float distanceToPlayer = Vector2.Distance(transform.position, Player.position);
-        
+
         RaycastHit2D hit = Physics2D.Raycast(transform.position, directionToPlayer, distanceToPlayer, obstacleLayer);
 
-        // Если луч ни во что не врезался (кроме самого игрока), значит, игрок в прямой видимости.
         return hit.collider == null;
     }
 
+    /// <summary>
+    /// Обрабатывает обнаружение игрока: сбрасывает таймер и вызывает событие один раз при входе в зону.
+    /// </summary>
     private void DetectPlayer()
     {
         _timeSincePlayerSeen = 0f;
@@ -102,6 +120,9 @@ public class EnemyVision : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Обрабатывает потерю игрока из поля зрения и вызывает соответствующее событие.
+    /// </summary>
     private void LosePlayer()
     {
         CanSeePlayer = false;
@@ -109,6 +130,9 @@ public class EnemyVision : MonoBehaviour
         OnPlayerLost?.Invoke();
     }
 
+    /// <summary>
+    /// Отрисовка гизмо зоны обнаружения и линии на игрока при детекции (редактор).
+    /// </summary>
     private void OnDrawGizmos()
     {
         Gizmos.color = Color.yellow;

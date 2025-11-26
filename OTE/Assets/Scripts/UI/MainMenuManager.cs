@@ -2,6 +2,9 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 
+/// <summary>
+/// Управляет главным меню: переключение панелей, создание новой игры и продолжение сохранения.
+/// </summary>
 public class MainMenuManager : MonoBehaviour
 {
     [Header("Buttons")]
@@ -14,21 +17,21 @@ public class MainMenuManager : MonoBehaviour
     [Header("Scene Names")]
     [SerializeField] private string newGameSceneName = "Level1_Prototype";
 
+    /// <summary>
+    /// Инициализация меню: применяет сохранённые настройки и проверяет наличие сохранения.
+    /// </summary>
     private void Start()
     {
-        // --- ВОТ КАК ТЕПЕРЬ ВЫГЛЯДИТ ПРИМЕНЕНИЕ ---
-        // 1. Загружаем данные
         SettingsData savedData = SettingsIO.LoadSettings();
-        
-        // 2. Вызываем статический метод из соседнего скрипта.
-        // Нам НЕ НУЖНА ссылка на SettingsMenu, и неважно, включена ли панель.
         SettingsMenu.ApplyGameSettings(savedData);
-        // ------------------------------------------
 
         CheckForSaveFile();
         ShowMainPanel();
     }
 
+    /// <summary>
+    /// Применяет настройки экрана из сохранений (широко экрана/окно).
+    /// </summary>
     private void ApplySavedSettings()
     {
         SettingsData data = SettingsIO.LoadSettings();
@@ -43,47 +46,67 @@ public class MainMenuManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Включает/отключает кнопку "Продолжить" в зависимости от наличия файла сохранения.
+    /// </summary>
     private void CheckForSaveFile()
     {
         bool saveFileExists = PlayerPrefs.GetInt("SaveFileExists", 0) == 1;
         if (continueButton != null) continueButton.interactable = saveFileExists;
     }
 
-    // --- ЛОГИКА ПЕРЕКЛЮЧЕНИЯ ПАНЕЛЕЙ ---
+    
 
+    /// <summary>
+    /// Открывает панель настроек, скрывая главное меню.
+    /// </summary>
     public void OpenSettings()
     {
         mainPanel.SetActive(false);
         settingsPanel.SetActive(true);
     }
 
-    public void CloseSettings() // Это для кнопки "Назад"
+    /// <summary>
+    /// Закрывает панель настроек и возвращает главное меню.
+    /// </summary>
+    public void CloseSettings() 
     {
         settingsPanel.SetActive(false);
         mainPanel.SetActive(true);
     }
 
+    /// <summary>
+    /// Отображает главное меню и скрывает настройки.
+    /// </summary>
     private void ShowMainPanel()
     {
         mainPanel.SetActive(true);
         settingsPanel.SetActive(false);
     }
 
-    // --- ИГРОВЫЕ МЕТОДЫ ---
+    
 
+    /// <summary>
+    /// Начинает новую игру: удаляет старое сохранение и загружает сцену новой игры.
+    /// </summary>
     public void NewGame()
     {
         SaveSystem.DeleteSaveFile();
         SceneManager.LoadScene(newGameSceneName);
     }
 
+    /// <summary>
+    /// Продолжает игру из сохранения, создавая временный `GameManager` для загрузки данных.
+    /// </summary>
     public void ContinueGame()
     {
-        // Создаем временный объект для загрузки
         GameObject tempManager = new GameObject("TempGameManager");
         tempManager.AddComponent<GameManager>().LoadGame();
     }
 
+    /// <summary>
+    /// Выходит из приложения.
+    /// </summary>
     public void QuitGame()
     {
         Application.Quit();
