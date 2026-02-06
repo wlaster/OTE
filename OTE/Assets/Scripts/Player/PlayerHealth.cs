@@ -164,8 +164,15 @@ public class PlayerHealth : MonoBehaviour, IDamageable
             animator.SetTrigger("death");
         }
 
-        StartCoroutine(FreezeAnimationOnDeath());
-        StartCoroutine(RestartLevel());
+        // StartCoroutine(FreezeAnimationOnDeath());
+        // StartCoroutine(RestartLevel());
+        StartCoroutine(ShowGameOverWithDelay());
+    }
+
+    private IEnumerator ShowGameOverWithDelay()
+    {
+        yield return new WaitForSeconds(1.5f); // Ждем 1.5 секунды анимации смерти
+        LevelManager.Instance.GameOver();      // Показываем экран
     }
 
     

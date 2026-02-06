@@ -112,6 +112,11 @@ public class EnemyHealth : MonoBehaviour, IDamageable
 
         OnDeath?.Invoke();
 
+        if (LevelManager.Instance != null)
+        {
+            LevelManager.Instance.OnEnemyDied();
+        }
+
         Destroy(gameObject, 2f);
     }
 
